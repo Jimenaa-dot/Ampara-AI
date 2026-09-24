@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Ampara AI - Plataforma de protección predictiva contra la violencia de género, alineada a la Ley N° 30364 de Perú.">
+    <meta name="theme-color" content="#3A0643">
+    <title>Ampara AI - Estás a salvo. Estoy aquí contigo.</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div class="app-container" id="app">
+
+        <!-- =========================================
+             PANTALLA 0: BIENVENIDA
+             ========================================= -->
+        <section id="screen-welcome" class="screen active" aria-label="Pantalla de bienvenida">
+            <img src="logo.png" alt="Logo de Ampara AI" class="welcome-logo">
+            <h1 class="welcome-title">Ampara AI</h1>
+            <p class="welcome-subtitle">Estás a salvo.<br>Estoy aquí contigo.</p>
+            <button id="btn-start" class="btn" aria-label="Comenzar a usar Ampara AI">Comenzar</button>
+        </section>
+
+        <!-- =========================================
+             PANTALLA 1: INICIO
+             ========================================= -->
+        <section id="screen-home" class="screen" aria-label="Menú principal">
+            <!-- Header -->
+            <div class="home-header">
+                <div class="home-logo">
+                    <img src="logo.png" alt="" class="header-logo" aria-hidden="true">
+                    Ampara AI
+                </div>
+                <button class="safe-mode-toggle" id="safe-mode-toggle" aria-label="Alternar Modo Seguro">
+                    <i class="fas fa-lock" aria-hidden="true"></i> Modo Seguro
+                </button>
+            </div>
+
+            <h2 class="home-greeting">Hola, ¿qué necesitas ahora?</h2>
+
+            <!-- CTA Emergencia -->
+            <button class="emergency-cta" id="btn-emergency" aria-label="Activar protocolo de emergencia">
+                <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                <div>
+                    NECESITO AYUDA AHORA
+                    <div class="caption" style="color: var(--danger); opacity: 0.8; font-weight: 400;">Mantén presionado 3 segundos</div>
+                </div>
+            </button>
+
+            <!-- Grid de Botones -->
+            <div class="home-grid">
+                <button class="grid-btn btn-calm" id="btn-calm" aria-label="Herramientas de calma">
+                    <i class="fas fa-spa" aria-hidden="true"></i>
+                    <span>Necesito calma</span>
+                </button>
+                <button class="grid-btn btn-location" id="btn-location" aria-label="Buscar ayuda cerca">
+                    <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
+                    <span>Buscar ayuda cerca</span>
+                </button>
+                <button class="grid-btn btn-chat" id="btn-chat" aria-label="Hablar con el asistente Ampara">
+                    <i class="fas fa-comment-dots" aria-hidden="true"></i>
+                    <span>Hablar con Ampara</span>
+                </button>
+                <button class="grid-btn btn-evidence" id="btn-evidence" aria-label="Analizar evidencia con IA">
+                    <i class="fas fa-camera" aria-hidden="true"></i>
+                    <span>Analizar evidencia</span>
+                </button>
+            </div>
+
+            <!-- Navegación Inferior -->
+            <nav class="bottom-nav" aria-label="Navegación principal">
+                <button class="nav-item active" aria-label="Inicio"><i class="fas fa-home" aria-hidden="true"></i><span>Inicio</span></button>
+                <button class="nav-item" aria-label="Protegerme"><i class="fas fa-shield-alt" aria-hidden="true"></i><span>Protegerme</span></button>
+                <button class="nav-item" aria-label="Ayuda"><i class="fas fa-map-pin" aria-hidden="true"></i><span>Ayuda</span></button>
+                <button class="nav-item" aria-label="Ampara"><i class="fas fa-comment" aria-hidden="true"></i><span>Ampara</span></button>
+                <button class="nav-item" aria-label="Más opciones"><i class="fas fa-ellipsis-h" aria-hidden="true"></i><span>Más</span></button>
+            </nav>
+        </section>
+
+        <!-- =========================================
+             PANTALLA 2: EMERGENCIA
+             ========================================= -->
+        <section id="screen-emergency" class="screen" aria-label="Protocolo de emergencia activo">
+            <i class="fas fa-exclamation-triangle emergency-icon" aria-hidden="true"></i>
+            <h1 class="emergency-title">Tu ayuda ya está en camino</h1>
+            <p class="emergency-subtitle">Hemos activado el protocolo de emergencia. Tu ubicación ha sido compartida con las autoridades y tu red de confianza.</p>
+
+            <div class="checklist">
+                <div class="checklist-item done">
+                    <div class="status-icon"><i class="fas fa-check" aria-hidden="true"></i></div>
+                    <div class="text">Activación</div>
+                    <div class="status-text">Listo</div>
+                </div>
+                <div class="checklist-item done">
+                    <div class="status-icon"><i class="fas fa-check" aria-hidden="true"></i></div>
+                    <div class="text">Ubicación GPS</div>
+                    <div class="status-text">Listo</div>
+                </div>
+                <div class="checklist-item">
+                    <div class="status-icon"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i></div>
+                    <div class="text">Evaluación de riesgo</div>
+                    <div class="status-text">En proceso...</div>
+                </div>
+                <div class="checklist-item">
+                    <div class="status-icon"><i class="far fa-circle" aria-hidden="true"></i></div>
+                    <div class="text">Alerta a autoridades</div>
+                    <div class="status-text">Pendiente</div>
+                </div>
+            </div>
+
+            <button id="btn-cancel-alert" class="btn btn-white">Cancelar alerta</button>
+        </section>
+
+        <!-- =========================================
+             PANTALLA 3: CHAT
+             ========================================= -->
+        <section id="screen-chat" class="screen" aria-label="Asistente guiado Ampara AI">
+            <div class="chat-header">
+                <button class="back-btn" data-target="screen-home" aria-label="Volver al inicio"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
+                <div class="screen-title">Ampara AI</div>
+                <button class="menu-dots" aria-label="Opciones del chat"><i class="fas fa-ellipsis-v" aria-hidden="true"></i></button>
+            </div>
+
+            <div class="chat-messages" id="chat-messages" aria-live="polite">
+                <div class="message message-ai">
+                    Hola, soy Ampara. Puedes hablarme con confianza. Aquí nadie te juzga y todo lo que compartas es privado.
+                    <span class="time">10:24</span>
+                </div>
+                <div class="message message-user">
+                    Me siento muy asustada, creo que me están siguiendo.
+                    <span class="time">10:25</span>
+                </div>
+                <div class="message message-ai">
+                    Entiendo cómo te sientes. Respira conmigo un momento. ¿Estás en un lugar seguro ahora?
+                    <span class="time">10:25</span>
+                </div>
+                <div class="quick-replies" id="quick-replies">
+                    <button class="quick-reply-btn" data-reply="Sí, estoy en un lugar seguro">Sí, estoy en un lugar seguro</button>
+                    <button class="quick-reply-btn" data-reply="No, necesito ayuda ahora">No, necesito ayuda ahora</button>
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <button class="attach-btn" aria-label="Adjuntar archivo"><i class="fas fa-paperclip" aria-hidden="true"></i></button>
+                <input type="text" id="chat-input" placeholder="Escribe un mensaje..." aria-label="Escribe un mensaje">
+                <button class="send-btn" id="btn-send-chat" aria-label="Enviar mensaje"><i class="fas fa-paper-plane" aria-hidden="true"></i></button>
+            </div>
+        </section>
+
+        <!-- =========================================
+             PANTALLA 4: ANÁLISIS EVIDENCIA
+             ========================================= -->
+        <section id="screen-evidence" class="screen" aria-label="Análisis de evidencia">
+            <div class="screen-header">
+                <button class="back-btn" data-target="screen-home" aria-label="Volver al inicio"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
+                <div class="screen-title">Analizar evidencia</div>
+            </div>
+
+            <div class="evidence-workspace">
+                <i class="fas fa-camera-retro evidence-icon" aria-hidden="true"></i>
+                <p style="font-weight: 500;">Analizando...</p>
+                <div class="progress-bar-container" role="progressbar" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100">
+                    <div class="progress-bar-fill" style="width: 70%;"></div>
+                </div>
+                <p class="caption">Estamos revisando el contenido para identificar señales de riesgo.</p>
+            </div>
+
+            <div class="card result-card">
+                <h4><i class="fas fa-exclamation-circle" aria-hidden="true"></i> Posible extorsión detectada</h4>
+                <ul class="result-list">
+                    <li><i class="fas fa-circle" aria-hidden="true"></i> Lenguaje amenazante</li>
+                    <li><i class="fas fa-circle" aria-hidden="true"></i> Múltiples mensajes en corto tiempo</li>
+                    <li><i class="fas fa-circle" aria-hidden="true"></i> Número desconocido</li>
+                </ul>
+            </div>
+
+            <div class="evidence-actions">
+                <button class="btn btn-primary">Guardar evidencia</button>
+                <button class="btn btn-white">¿Qué quieres hacer?</button>
+            </div>
+        </section>
+
+        <!-- =========================================
+             PANTALLA 5: AYUDA CERCA
+             ========================================= -->
+        <section id="screen-nearby" class="screen" aria-label="Ayuda cerca de ti">
+            <div class="screen-header">
+                <button class="back-btn" data-target="screen-home" aria-label="Volver al inicio"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
+                <div class="screen-title">Ayuda cerca de ti</div>
+            </div>
+
+            <div class="search-bar">
+                <i class="fas fa-search" style="color: var(--text-secondary);" aria-hidden="true"></i>
+                <input type="text" placeholder="Buscar en tu ubicación" aria-label="Buscar recursos cercanos">
+            </div>
+
+            <div class="filter-chips" role="tablist">
+                <button class="chip active" role="tab">Casas hogar</button>
+                <button class="chip" role="tab">Líneas de ayuda</button>
+                <button class="chip" role="tab">Otros recursos</button>
+            </div>
+
+            <div class="map-placeholder" aria-label="Mapa de recursos">
+                <i class="fas fa-map-marked-alt" style="font-size: 24px; opacity: 0.5; margin-right: 8px;" aria-hidden="true"></i> Mapa de recursos
+            </div>
+
+            <div class="card place-card">
+                <div class="place-header">
+                    <div class="place-title">Casa Hogar Santa María</div>
+                    <div class="place-distance">A 1.2 km • 24h</div>
+                </div>
+                <div class="place-desc">Refugio temporal y apoyo integral.</div>
+                <div class="place-actions">
+                    <button class="btn-call"><i class="fas fa-phone" aria-hidden="true"></i> Llamar</button>
+                    <button class="btn-route"><i class="fas fa-compass" aria-hidden="true"></i> Cómo llegar</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================
+             PANTALLA 6: CALMA
+             ========================================= -->
+        <section id="screen-calm" class="screen" aria-label="Ejercicio de respiración guiada">
+            <div class="screen-header" style="background: transparent; position: absolute; top: 0; left: 0; width: 100%;">
+                <button class="back-btn" data-target="screen-home" aria-label="Volver al inicio"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
+                <div class="screen-title">Necesito calma</div>
+            </div>
+
+            <div style="margin-top: 60px; width: 100%; display: flex; flex-direction: column; align-items: center;">
+                <div class="breathing-circle" id="breathing-circle">
+                    <div class="inner-text" id="breathing-text">Inhala</div>
+                </div>
+                <p class="calm-text">Respira conmigo.<br>Inhala, exhala. Estás a salvo.</p>
+                <div class="calm-controls">
+                    <button class="btn-pause" id="btn-pause" aria-label="Pausar ejercicio"><i class="fas fa-pause" aria-hidden="true"></i></button>
+                    <button class="btn-exit" data-target="screen-home">Salir</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================
+             PANTALLA 7: EVALUACIÓN RIESGO
+             ========================================= -->
+        <section id="screen-risk" class="screen" aria-label="Evaluación de riesgo">
+            <div class="screen-header">
+                <button class="back-btn" data-target="screen-home" aria-label="Volver al inicio"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
+                <div class="screen-title">Evaluación de riesgo</div>
+            </div>
+
+            <div class="risk-badge">
+                <i class="fas fa-exclamation-triangle" aria-hidden="true"></i> Nivel de atención: ALTO
+            </div>
+
+            <p style="margin-bottom: 20px; font-size: 15px;">Detectamos señales que podrían requerir atención inmediata.</p>
+
+            <div class="card risk-card">
+                <h4><i class="fas fa-question-circle" aria-hidden="true"></i> ¿Por qué?</h4>
+                <ul class="risk-list">
+                    <li><i class="fas fa-check-circle" aria-hidden="true"></i> Amenaza explícita</li>
+                    <li><i class="fas fa-check-circle" aria-hidden="true"></i> Escalada reciente</li>
+                    <li><i class="fas fa-check-circle" aria-hidden="true"></i> Lenguaje coercitivo</li>
+                </ul>
+            </div>
+
+            <div class="risk-actions">
+                <button class="btn btn-primary">Pedir ayuda</button>
+                <button class="btn btn-white">Ver más detalles</button>
+            </div>
+        </section>
+
+        <!-- =========================================
+             PANTALLA 8: MODO SEGURO
+             ========================================= -->
+        <section id="screen-safe-mode" class="screen" aria-label="Modo Seguro activo">
+            <img src="logo.png" alt="" class="safe-logo" aria-hidden="true">
+            <h1 class="safe-title">Modo Seguro</h1>
+            <div class="safe-status">ACTIVO</div>
+            <p class="safe-desc">Tu información permanece oculta y tu experiencia está protegida.</p>
+
+            <ul class="safe-benefits">
+                <li><i class="fas fa-check-square" aria-hidden="true"></i> Interfaz simplificada</li>
+                <li><i class="fas fa-bell-slash" aria-hidden="true"></i> Sin notificaciones</li>
+                <li><i class="fas fa-sign-out-alt" aria-hidden="true"></i> Salida rápida</li>
+                <li><i class="fas fa-user-secret" aria-hidden="true"></i> Sin rastro en el dispositivo</li>
+            </ul>
+
+            <button id="btn-exit-safe" class="btn btn-white">Salir rápido</button>
+        </section>
+
+    </div>
+
+    <!-- JavaScript -->
+    <script src="app.js"></script>
+</body>
+</html>
