@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ampara AI - Estás a salvo. Estoy aquí contigo.</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="diseño.css">
+</head>
+<body>
+
+    <!-- A. HEADER -->
+    <header class="header">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <i class="fa-solid fa-shield-leaf"></i>
+            </div>
+            <span class="logo-text">Ampara AI</span>
+        </div>
+        
+        <nav class="nav-links" id="navLinks">
+            <a href="#inicio">Inicio</a>
+            <a href="#denuncia">Denuncia Segura</a>
+            <a href="#recursos">Recursos</a>
+            <a href="#contacto">Contacto</a>
+        </nav>
+
+        <div class="header-actions">
+            <div class="safe-mode-toggle">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>Modo Seguro</span>
+                <label class="switch">
+                    <input type="checkbox" id="safeModeToggle" checked>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <button class="menu-btn" id="menuBtn"><i class="fa-solid fa-bars"></i></button>
+        </div>
+    </header>
+
+    <main>
+        <!-- B. HERO SECTION -->
+        <section class="hero" id="inicio">
+            <h1>Estás a salvo.<br>Estoy aquí contigo.</h1>
+            <p>Ampara AI es un espacio seguro y confidencial que te acompaña con calma, respeto y herramientas prácticas.</p>
+            <button class="btn-primary" onclick="scrollToChat()">
+                <i class="fa-solid fa-leaf"></i> Necesito ayuda ahora
+            </button>
+        </section>
+
+        <!-- C. SECCIÓN DE INTERACCIÓN PRINCIPAL -->
+        <section class="main-interaction">
+            <!-- Columna Izquierda: Chat -->
+            <div class="chat-container" id="chatSection">
+                <div class="chat-header">
+                    <div class="avatar">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <div class="chat-info">
+                        <h3>Ampara AI</h3>
+                        <p>Asistente segura y confidencial</p>
+                    </div>
+                    <i class="fa-solid fa-ellipsis-vertical menu-icon"></i>
+                </div>
+                
+                <div class="chat-messages" id="chatMessages">
+                    <!-- Mensajes iniciales -->
+                    <div class="message ai-message">
+                        <p>Hola, soy Ampara. Puedes hablarme con confianza. Aquí nadie te juzga y todo lo que compartas es privado.</p>
+                        <span class="time">10:24 <i class="fa-solid fa-check-double"></i></span>
+                    </div>
+                    <div class="message user-message">
+                        <p>Me siento abrumada y no sé qué hacer.</p>
+                        <span class="time">10:25 <i class="fa-solid fa-check-double"></i></span>
+                    </div>
+                    <div class="message ai-message">
+                        <p>Entiendo cómo te sientes. Respira conmigo un momento. Estoy aquí para ayudarte. ¿Quieres que te guíe con algo de calma o revisamos opciones seguras?</p>
+                        <span class="time">10:26 <i class="fa-solid fa-check-double"></i></span>
+                    </div>
+                </div>
+
+                <div class="chat-input-area">
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-paperclip"></i>
+                        <input type="text" id="chatInput" placeholder="Escribe tu mensaje aquí...">
+                        <button id="sendBtn"><i class="fa-solid fa-paper-plane"></i></button>
+                    </div>
+                    <div class="quick-actions">
+                        <button onclick="sendQuickAction('Necesito calma')"><i class="fa-regular fa-circle-check"></i> Necesito calma</button>
+                        <button onclick="sendQuickAction('Analizar mensaje')"><i class="fa-regular fa-comment-dots"></i> Analizar mensaje</button>
+                        <button onclick="sendQuickAction('Casas hogar cerca')"><i class="fa-solid fa-house-medical"></i> Casas hogar cerca</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna Derecha: Módulos -->
+            <div class="modules-container" id="recursos">
+                <div class="module-card">
+                    <div class="module-icon ocr-icon"><i class="fa-solid fa-expand"></i></div>
+                    <div class="module-content">
+                        <h3>Análisis OCR</h3>
+                        <p>Extrae texto de imágenes de forma segura y privada.</p>
+                        <a href="#">Ver cómo funciona <i class="fa-solid fa-arrow-right"></i></a>
+                    </div>
+                </div>
+
+                <div class="module-card">
+                    <div class="module-icon location-icon"><i class="fa-solid fa-location-dot"></i></div>
+                    <div class="module-content">
+                        <h3>Ayuda cerca de ti</h3>
+                        <p>Encuentra casas hogar, líneas de ayuda y recursos en tu zona.</p>
+                        <a href="#">Buscar lugares seguros <i class="fa-solid fa-arrow-right"></i></a>
+                    </div>
+                </div>
+
+                <div class="module-card">
+                    <div class="module-icon lotus-icon"><i class="fa-solid fa-spa"></i></div>
+                    <div class="module-content">
+                        <h3>Herramientas para respirar</h3>
+                        <p>Ejercicios guiados para ayudarte a volver al presente.</p>
+                        <a href="#">Comenzar ejercicio <i class="fa-solid fa-arrow-right"></i></a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- D. SECCIÓN "EL GRAN CONTRASTE" -->
+        <section class="contrast-section" id="denuncia">
+            <h2>El Gran Contraste: Tiempo de Respuesta</h2>
+            <div class="contrast-grid">
+                <div class="contrast-card traditional">
+                    <div class="contrast-icon"><i class="fa-solid fa-phone"></i></div>
+                    <h3>FLUJO TRADICIONAL (Llamada)</h3>
+                    <div class="big-number">~15 MINUTOS</div>
+                    <ul>
+                        <li>1. Desbloquear</li>
+                        <li>2. Marcar 105</li>
+                        <li>3. Esperar operador</li>
+                        <li>4. Explicar dirección</li>
+                    </ul>
+                </div>
+                <div class="contrast-card ampara">
+                    <div class="contrast-icon"><i class="fa-solid fa-bolt"></i></div>
+                    <h3>FLUJO AMPARA AI (Automatizado)</h3>
+                    <div class="big-number">5 SEGUNDOS</div>
+                    <ul>
+                        <li>1. Pulsación rápida</li>
+                        <li>2. Resguardo en la nube</li>
+                        <li>3. Alerta con GPS a PNP, MIMP y red de confianza</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- E. SECCIÓN "MÓDULOS DE PROTECCIÓN INTELIGENTE" -->
+        <section class="smart-modules">
+            <h2>Módulos de Protección Inteligente</h2>
+            <div class="smart-grid">
+                <div class="smart-card acoso">
+                    <h3>Acoso Digital</h3>
+                    <p>OCR y NLP para analizar chats, identificar extorsión y sellar evidencias en la nube con hash SHA-256.</p>
+                </div>
+                <div class="smart-card via-publica">
+                    <h3>Vía Pública</h3>
+                    <p>Activación rápida sin mirar la pantalla, geolocalización de Casas Hogar cercanas y ejercicios de respiración anti-ansiedad.</p>
+                </div>
+                <div class="smart-card domestica">
+                    <h3>Violencia Doméstica</h3>
+                    <p>Score de Escalada automático, alertas discretas al MIMP/PNP y respaldo de pruebas ante la destrucción del celular.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- F. SECCIÓN "FLUJO EN 4 PASOS" -->
+        <section class="flow-section">
+            <h2>Flujo en 4 Pasos</h2>
+            <div class="flow-grid">
+                <div class="flow-step">
+                    <div class="step-icon"><i class="fa-solid fa-fingerprint"></i></div>
+                    <h4>Detección</h4>
+                    <p>Pulsación discreta o subida de captura.</p>
+                </div>
+                <div class="flow-step">
+                    <div class="step-icon"><i class="fa-solid fa-brain"></i></div>
+                    <h4>Triaje IA</h4>
+                    <p>Algoritmo calcula el Score de Riesgo.</p>
+                </div>
+                <div class="flow-step">
+                    <div class="step-icon"><i class="fa-solid fa-lock"></i></div>
+                    <h4>Sello Criptográfico</h4>
+                    <p>Prueba inalterable resguardada en la nube.</p>
+                </div>
+                <div class="flow-step">
+                    <div class="step-icon"><i class="fa-solid fa-tower-broadcast"></i></div>
+                    <h4>Despacho Multicanal</h4>
+                    <p>Envío directo de ubicación GPS a las autoridades.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- G. FOOTER -->
+    <footer class="footer" id="contacto">
+        <div class="footer-left">
+            <div class="logo-container">
+                <i class="fa-solid fa-shield-leaf"></i>
+                <span class="logo-text">Ampara AI</span>
+            </div>
+            <p>Confidencial. Seguro. Contigo.</p>
+        </div>
+        <div class="footer-center">
+            <p><i class="fa-solid fa-phone"></i> Línea de ayuda nacional (800) 123-4567</p>
+            <p><i class="fa-solid fa-triangle-exclamation"></i> Emergencias 911</p>
+        </div>
+        <div class="footer-right">
+            <p>Ayuda discreta y confidencial <i class="fa-solid fa-lock"></i></p>
+        </div>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">Modo Seguro Activado</div>
+
+    <script src="script.js"></script>
+</body>
+</html>
