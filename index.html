@@ -235,19 +235,33 @@
 
                 <div class="search-bar">
                     <i class="fas fa-search" aria-hidden="true"></i>
-                    <input type="text" placeholder="Buscar por distrito o ciudad" aria-label="Buscar recursos cercanos">
+                    <input type="text" id="city-search-input" placeholder="Escribe tu ciudad o distrito (ej. Miraflores, Lima)" aria-label="Buscar recursos cercanos">
+                    <button id="btn-search-city" class="btn-search-city" aria-label="Buscar en el mapa">
+                        <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </button>
                 </div>
+                <p class="map-hint" id="map-hint" hidden><i class="fas fa-circle-info" aria-hidden="true"></i> Escribe una ciudad o distrito y presiona buscar para ver el mapa.</p>
 
                 <div class="filter-chips" role="tablist">
-                    <button class="chip active" role="tab">Casas hogar</button>
-                    <button class="chip" role="tab">Líneas de ayuda</button>
-                    <button class="chip" role="tab">Comisarías</button>
-                    <button class="chip" role="tab">Otros recursos</button>
+                    <button class="chip active" role="tab" data-query="casas de acogida para mujeres">Casas hogar</button>
+                    <button class="chip" role="tab" data-query="líneas de emergencia para mujeres">Líneas de ayuda</button>
+                    <button class="chip" role="tab" data-query="comisaría de la mujer">Comisarías</button>
+                    <button class="chip" role="tab" data-query="centro de ayuda a la mujer">Otros recursos</button>
                 </div>
 
                 <div class="refugios-grid">
-                    <div class="map-placeholder" aria-label="Mapa de recursos cercanos">
-                        <i class="fas fa-map-marked-alt" aria-hidden="true"></i> Mapa de recursos
+                    <div class="map-container" id="map-container">
+                        <div class="map-placeholder" id="map-placeholder" aria-label="Mapa de recursos cercanos">
+                            <i class="fas fa-map-marked-alt" aria-hidden="true"></i> Escribe tu ciudad para ver el mapa
+                        </div>
+                        <iframe
+                            id="map-frame"
+                            class="map-frame"
+                            hidden
+                            title="Mapa de refugios y ayuda cercana"
+                            loading="lazy"
+                            referrerpolicy="no-referrer-when-downgrade"
+                        ></iframe>
                     </div>
 
                     <div class="places-list">

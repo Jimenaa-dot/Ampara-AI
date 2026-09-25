@@ -6,17 +6,28 @@ document.addEventListener('DOMContentLoaded', () => {
     'use strict';
 
     // =========================================
+    // 0. CONFIGURACIÓN
+    // =========================================
+    // ⚠️ IMPORTANTE: usa /webhook/ (PRODUCCIÓN), no /webhook-test/.
+    // La URL de test solo funciona mientras n8n está escuchando en el editor.
+    const AMPARA_CHAT_WEBHOOK_URL = 'https://ncol021.app.n8n.cloud/webhook/ampara-chat';
+
+    // Identificador de sesión simple para que n8n pueda diferenciar conversaciones
+    const amparaSessionId = 'sess_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+    // Historial en memoria para enviar contexto al webhook (para que el bot recuerde el hilo)
+    const amparaHistory = [];
+
+    // =========================================
     // 1. SALIDA RÁPIDA
     // =========================================
     const btnQuickExit = document.getElementById('btn-quick-exit');
     if (btnQuickExit) {
         btnQuickExit.addEventListener('click', () => {
-            // Reemplaza el historial para que el botón "atrás" no vuelva al sitio
             window.location.replace('https://www.google.com');
         });
     }
 
-    // Tecla de escape rápida: presionar ESC tres veces sale del sitio
     let escCount = 0;
     let escTimer = null;
     document.addEventListener('keydown', (e) => {
@@ -70,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================
-    // 4. MODAL DE AUTENTICACIÓN (INICIAR SESIÓN / REGISTRO)
+    // 4. MODAL DE AUTENTICACIÓN
     // =========================================
     const authModal = document.getElementById('auth-modal');
     const btnAuth = document.getElementById('btn-auth');
@@ -85,14 +96,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function openAuthModal() {
         if (authModal) authModal.hidden = false;
-        // Resetear a modo inicio de sesión por defecto
         setAuthMode(false);
     }
-
     function closeAuthModal() {
         if (authModal) authModal.hidden = true;
     }
-
     function setAuthMode(registerMode) {
         isRegisterMode = registerMode;
         if (registerMode) {
@@ -115,55 +123,45 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.target === authModal) closeAuthModal();
         });
     }
-
     if (linkRegister) {
         linkRegister.addEventListener('click', (e) => {
             e.preventDefault();
             setAuthMode(!isRegisterMode);
         });
     }
-
     if (authForm) {
         authForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
-
             if (!email || !password) {
                 alert('Por favor, completa todos los campos.');
                 return;
             }
-
-            // Simulación de éxito
             const action = isRegisterMode ? 'Registro' : 'Inicio de sesión';
             console.log(`%c✅ ${action} exitoso para: ${email}`, 'color: #22C55E; font-weight: bold;');
-            
-            // Cerrar modal y limpiar formulario
             closeAuthModal();
             authForm.reset();
-            
-            // Mostrar mensaje de éxito (puedes cambiar esto por una redirección real)
             alert(`¡${action} exitoso! Bienvenida, ${email}`);
         });
     }
 
     // =========================================
-    // 5. CHAT SIMULADO
+    // 5. CHAT — EMPÁTICO, CONTEXTUAL, HUMANO
     // =========================================
     const chatInput = document.getElementById('chat-input');
     const sendChatBtn = document.getElementById('btn-send-chat');
     const chatMessages = document.getElementById('chat-messages');
     const quickRepliesContainer = document.getElementById('quick-replies');
 
-    const aiResponses = [
-        "Entiendo. Estoy aquí para escucharte sin juzgarte. ¿Puedes contarme un poco más?",
-        "Gracias por confiar en mí. Recuerda que no estás sola. ¿Hay alguien con quien te sientas segura ahora?",
-        "Eso suena muy difícil. Tu seguridad es lo más importante. ¿Quieres que busquemos juntas un refugio cerca?",
-        "Si en algún momento sientes que estás en peligro, podemos activar una alerta silenciosa.",
-        "Válido. Tómate tu tiempo. Respira profundo. Estoy aquí contigo."
-    ];
+    const ACTION_MAP = {
+        respirar: { label: '🧘 Ir a "Necesito calma"', target: '#respira' },
+        evidencias: { label: '📷 Analizar evidencia', target: '#evidencias' },
+        refugios: { label: '🏠 Ver refugios cercanos', target: '#refugios' },
+        alerta: { label: '🚨 Activar alerta de emergencia', target: 'emergency' }
+    };
 
-    function addMessage(text, sender) {
+    function addMessage(text, sender, suggestedActions) {
         if (!chatMessages) return;
         const msgDiv = document.createElement('div');
         msgDiv.classList.add('message', sender === 'user' ? 'message-user' : 'message-ai');
@@ -172,24 +170,181 @@ document.addEventListener('DOMContentLoaded', () => {
         const timeStr = now.getHours().toString().padStart(2, '0') + ':' +
                         now.getMinutes().toString().padStart(2, '0');
 
-        msgDiv.innerHTML = `${text} <span class="time">${timeStr}</span>`;
+        // Usamos textContent para el texto + span aparte para evitar inyección HTML
+        const textNode = document.createElement('span');
+        textNode.textContent = text + ' ';
+        msgDiv.appendChild(textNode);
+
+        const timeSpan = document.createElement('span');
+        timeSpan.classList.add('time');
+        timeSpan.textContent = timeStr;
+        msgDiv.appendChild(timeSpan);
+
+        if (Array.isArray(suggestedActions) && suggestedActions.length) {
+            const actionsWrap = document.createElement('div');
+            actionsWrap.classList.add('message-actions');
+
+            suggestedActions.forEach((key) => {
+                const action = ACTION_MAP[key];
+                if (!action) return;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.classList.add('message-action-btn');
+                if (key === 'alerta') btn.classList.add('message-action-btn-danger');
+                btn.textContent = action.label;
+                btn.addEventListener('click', () => {
+                    if (action.target === 'emergency') {
+                        openEmergencyModal();
+                    } else {
+                        const section = document.querySelector(action.target);
+                        if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+                actionsWrap.appendChild(btn);
+            });
+
+            if (actionsWrap.children.length) msgDiv.appendChild(actionsWrap);
+        }
+
         chatMessages.appendChild(msgDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    function simulateAIResponse(userMessage) {
-        setTimeout(() => {
-            const lowerMsg = userMessage.toLowerCase();
-            let responseText;
-            if (lowerMsg.includes('segur')) {
-                responseText = "Me alegra saber que estás en un lugar seguro. ¿Quieres que te guíe en un ejercicio de respiración?";
-            } else if (lowerMsg.includes('ayuda')) {
-                responseText = "Entiendo que necesitas ayuda. Puedo mostrarte refugios cercanos o líneas de emergencia. ¿Qué prefieres?";
-            } else {
-                responseText = aiResponses[Math.floor(Math.random() * aiResponses.length)];
+    // =========================================
+    // Fallback LOCAL: solo se usa si el webhook falla.
+    // Diseñado para NO ser repetitivo: clasifica por tipo de situación y
+    // responde con consejo situacional + una herramienta concreta.
+    // =========================================
+    function localFallbackResponse(userMessage) {
+        const lower = userMessage.toLowerCase();
+
+        const highRisk = /(me va(n)? a matar|me quiere(n)? matar|tiene(n)? (un )?(arma|cuchillo|pistola)|me est(á|a|án) (golpeando|ahorcando|violando|persiguiendo)|me est(á|a|án) siguiendo|me siguen|siguiéndome|me persiguen|est(á|a|án) afuera de (mi|la) (casa|cuarto)|no puedo salir|auxilio|socorro|ay(ú|u)dame ya|ayuda urgente|peligro ahora)/;
+        const digitalHarrassment = /(capturas|amenaza con publicar|sextorsi|me hacke|me escribe por (instagram|whatsapp|facebook|tiktok|wasap)|extorsi|me amenaza por (wasap|whatsapp|instagram|facebook)|me mandó (fotos|mensajes) amenaz|tiene (mis )?fotos|me filma sin permiso|me está extorsionando|difundir (fotos|imágenes|videos))/;
+        const domestic = /(mi (esposo|pareja|marido|novio|enamorado|papá|padrastro|hermano|tío|abuelo) me (pega|golpea|empuja|insulta|humilla|amenaza|controla|encierra|persigue)|me revisa el celular|no me deja (salir|trabajar|estudiar)|me quita el dinero|violencia en (mi )?casa|abuso en (mi )?casa|me cela mucho|me prohíbe|me empujó)/;
+        const acosoCallejero = /(me sigue(n)? (unos )?hombres|me sigue (un|el) (hombre|tipo|señor)|me acosa en la calle|me silba|me dice cosas por la calle|me persigue en la calle|me mira raro en la calle)/;
+        const incomodidad = /(fiesta|reunión|bar|antro|discoteca|me dejaron (mis amigas|mis amigos)|sola en (una|la) fiesta|no conozco a nadie|no sé cómo irme|no me siento cómoda|me da miedo estar aquí)/;
+        const mediumRisk = /(me sigue|me persigue|me amenaz|me controla|me revisa|no me deja|me insulta|me grita|me acosa|me molesta|me incómoda|no me siento segura|me da miedo)/;
+        const lowRisk = /(incóm|incomod|ansi|triste|nervios|preocupa|no sé qué hacer|me siento mal|estoy cansada|estoy agotada)/;
+
+        if (highRisk.test(lower)) {
+            return {
+                reply: 'Escúchame: tu seguridad es lo primero. Presiona YA el botón rojo "Necesito ayuda ahora" arriba en la página, y llama al 105 o al 100. Aléjate del lugar o enciérrate donde puedas, y si hay gente cerca, pídeles ayuda. Estoy aquí, no cierres esta conversación.',
+                risk_level: 'alto',
+                suggested_actions: ['alerta'],
+                escalate: true
+            };
+        }
+        if (digitalHarrassment.test(lower)) {
+            return {
+                reply: 'Qué angustia eso, y qué bueno que me lo cuentes. Primero: no le respondas nada y no borres los mensajes, porque son tu prueba. Toma capturas de todo (perfil, conversación, número) y guárdalas en la sección Analizar evidencia, que las deja fuera de tu celular por si él tiene acceso. Después bloquealo y repórtalo en la plataforma. Si quieres, seguimos hablando, no estás sola en esto.',
+                risk_level: 'medio',
+                suggested_actions: ['evidencias'],
+                escalate: false
+            };
+        }
+        if (domestic.test(lower)) {
+            return {
+                reply: 'Lamento mucho que estés pasando esto, y quiero que sepas algo importante: no es tu culpa. Lo que describes es violencia, aunque él te diga que exageras. ¿Hay algún lugar donde puedas estar segura ahora, o alguien de confianza a quien puedas escribirle? Si tienes fotos o mensajes, guárdalos en Analizar evidencia por si los necesitas después. Y si en algún momento sientes peligro, el botón rojo de arriba te conecta al instante. ¿Quieres contarme un poco más?',
+                risk_level: 'medio',
+                suggested_actions: ['evidencias', 'refugios'],
+                escalate: false
+            };
+        }
+        if (acosoCallejero.test(lower)) {
+            return {
+                reply: 'Qué feo eso, y qué bueno que me lo cuentes. Si puedes, camina hacia un lugar con más gente (una tienda, un banco, una farmacia) y quédate ahí un momento. Si tienes a alguien de confianza cerca, llámalo y cuéntale dónde estás. Si sientes que te siguen de verdad, activa la alerta con el botón rojo de arriba para que tu contacto de emergencia reciba tu ubicación. ¿Dónde estás ahora?',
+                risk_level: 'medio',
+                suggested_actions: ['alerta', 'refugios'],
+                escalate: false
+            };
+        }
+        if (incomodidad.test(lower)) {
+            return {
+                reply: 'Uy, qué incómodo eso. Y es totalmente normal sentir miedo, no estás exagerando. Respira un segundo, estoy contigo. ¿Hay algún lugar con más gente o recepción donde puedas estar mientras decides? Si quieres, activamos la Alerta de Ampara para que tu contacto de emergencia venga por ti con tu ubicación. ¿Lo hacemos?',
+                risk_level: 'medio',
+                suggested_actions: ['alerta'],
+                escalate: false
+            };
+        }
+        if (mediumRisk.test(lower)) {
+            return {
+                reply: 'Gracias por confiarme esto, entiendo que no es fácil. ¿Hay algún lugar donde te sientas más segura ahora mismo? Guarda cualquier mensaje, captura o audio que tengas en Analizar evidencia, y si quieres revisa los refugios y líneas de ayuda cercanas. Si la situación empeora, el botón rojo de arriba activa ayuda de inmediato. ¿Quieres contarme un poco más?',
+                risk_level: 'medio',
+                suggested_actions: ['evidencias', 'refugios'],
+                escalate: false
+            };
+        }
+        if (lowRisk.test(lower)) {
+            return {
+                reply: 'Tiene sentido sentirte así, y me alegra que me lo cuentes. ¿Quieres contarme un poco más de lo que pasó? Estoy aquí contigo. Si te ayuda, prueba respirar lento unos momentos en la sección Necesito calma.',
+                risk_level: 'bajo',
+                suggested_actions: ['respirar'],
+                escalate: false
+            };
+        }
+        return {
+            reply: 'Estoy aquí contigo. ¿Puedes contarme un poco más sobre lo que está pasando?',
+            risk_level: 'bajo',
+            suggested_actions: [],
+            escalate: false
+        };
+    }
+
+    function showTypingIndicator() {
+        if (!chatMessages) return null;
+        const typingDiv = document.createElement('div');
+        typingDiv.classList.add('message', 'message-ai', 'message-typing');
+        typingDiv.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+        chatMessages.appendChild(typingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return typingDiv;
+    }
+
+    async function getAIResponse(userMessage) {
+        if (AMPARA_CHAT_WEBHOOK_URL) {
+            try {
+                const res = await fetch(AMPARA_CHAT_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: userMessage,
+                        sessionId: amparaSessionId,
+                        history: amparaHistory.slice(-8) // últimos 8 turnos
+                    })
+                });
+                if (!res.ok) throw new Error('Respuesta no OK del webhook: ' + res.status);
+                const data = await res.json();
+                if (!data || !data.reply) throw new Error('Respuesta del webhook sin campo "reply"');
+
+                // Guardar turno en el historial local para el siguiente mensaje
+                amparaHistory.push({ role: 'user', content: userMessage });
+                amparaHistory.push({ role: 'assistant', content: data.reply });
+
+                return {
+                    reply: data.reply,
+                    risk_level: data.risk_level || 'bajo',
+                    suggested_actions: Array.isArray(data.suggested_actions) ? data.suggested_actions : [],
+                    escalate: !!data.escalate
+                };
+            } catch (err) {
+                console.warn('⚠️ No se pudo contactar al webhook de n8n, usando respuesta local:', err);
+                return localFallbackResponse(userMessage);
             }
-            addMessage(responseText, 'ai');
-        }, 1200);
+        }
+        return localFallbackResponse(userMessage);
+    }
+
+    async function simulateAIResponse(userMessage) {
+        const typingDiv = showTypingIndicator();
+        const minDelay = new Promise(resolve => setTimeout(resolve, 900));
+        const [result] = await Promise.all([getAIResponse(userMessage), minDelay]);
+        if (typingDiv) typingDiv.remove();
+
+        addMessage(result.reply, 'ai', result.suggested_actions);
+
+        if (result.escalate) {
+            openEmergencyModal();
+        }
     }
 
     function handleUserMessage(text) {
@@ -286,12 +441,52 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================
-    // 8. FILTROS DE REFUGIOS
+    // 8. REFUGIOS: BÚSQUEDA POR CIUDAD + MAPA
     // =========================================
+    const cityInput = document.getElementById('city-search-input');
+    const btnSearchCity = document.getElementById('btn-search-city');
+    const mapPlaceholder = document.getElementById('map-placeholder');
+    const mapFrame = document.getElementById('map-frame');
+    const mapHint = document.getElementById('map-hint');
+
+    let activeChipQuery = document.querySelector('.chip.active')
+        ? document.querySelector('.chip.active').getAttribute('data-query')
+        : 'casas de acogida para mujeres';
+
+    function updateMap(city) {
+        const cleanCity = (city || '').trim();
+        if (!cleanCity) {
+            if (mapHint) mapHint.hidden = false;
+            return;
+        }
+        if (mapHint) mapHint.hidden = true;
+
+        const query = `${activeChipQuery} cerca de ${cleanCity}`;
+        const src = `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
+
+        mapFrame.src = src;
+        if (mapPlaceholder) mapPlaceholder.hidden = true;
+        mapFrame.hidden = false;
+    }
+
+    if (btnSearchCity && cityInput) {
+        btnSearchCity.addEventListener('click', () => updateMap(cityInput.value));
+        cityInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                updateMap(cityInput.value);
+            }
+        });
+    }
+
     document.querySelectorAll('.chip').forEach(chip => {
         chip.addEventListener('click', () => {
             document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
             chip.classList.add('active');
+            activeChipQuery = chip.getAttribute('data-query') || activeChipQuery;
+            if (cityInput && cityInput.value.trim()) {
+                updateMap(cityInput.value);
+            }
         });
     });
 
