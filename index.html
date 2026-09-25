@@ -9,6 +9,12 @@
 
     <link rel="icon" type="image/png" href="logo.png">
 
+    <!-- Leaflet CSS para el mapa -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet JS para el mapa -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-providers@1.13.0/leaflet-providers.js"></script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -225,7 +231,7 @@
             </div>
         </section>
 
-        <!-- =========================================
+                <!-- =========================================
              REFUGIOS CERCANOS
              ========================================= -->
         <section id="refugios" class="section-block">
@@ -235,59 +241,31 @@
 
                 <div class="search-bar">
                     <i class="fas fa-search" aria-hidden="true"></i>
-                    <input type="text" id="city-search-input" placeholder="Escribe tu ciudad o distrito (ej. Miraflores, Lima)" aria-label="Buscar recursos cercanos">
-                    <button id="btn-search-city" class="btn-search-city" aria-label="Buscar en el mapa">
-                        <i class="fas fa-arrow-right" aria-hidden="true"></i>
-                    </button>
+                    <input type="text" placeholder="Buscar por distrito o ciudad" aria-label="Buscar recursos cercanos">
                 </div>
-                <p class="map-hint" id="map-hint" hidden><i class="fas fa-circle-info" aria-hidden="true"></i> Escribe una ciudad o distrito y presiona buscar para ver el mapa.</p>
 
                 <div class="filter-chips" role="tablist">
-                    <button class="chip active" role="tab" data-query="casas de acogida para mujeres">Casas hogar</button>
-                    <button class="chip" role="tab" data-query="líneas de emergencia para mujeres">Líneas de ayuda</button>
-                    <button class="chip" role="tab" data-query="comisaría de la mujer">Comisarías</button>
-                    <button class="chip" role="tab" data-query="centro de ayuda a la mujer">Otros recursos</button>
+                    <button class="chip active" role="tab" data-filter="casas-hogar">Casas hogar</button>
+                    <button class="chip" role="tab" data-filter="lineas-ayuda">Líneas de ayuda</button>
+                    <button class="chip" role="tab" data-filter="comisarias">Comisarías</button>
+                    <button class="chip" role="tab" data-filter="otros">Otros recursos</button>
                 </div>
 
                 <div class="refugios-grid">
-                    <div class="map-container" id="map-container">
-                        <div class="map-placeholder" id="map-placeholder" aria-label="Mapa de recursos cercanos">
-                            <i class="fas fa-map-marked-alt" aria-hidden="true"></i> Escribe tu ciudad para ver el mapa
-                        </div>
-                        <iframe
-                            id="map-frame"
-                            class="map-frame"
-                            hidden
-                            title="Mapa de refugios y ayuda cercana"
-                            loading="lazy"
-                            referrerpolicy="no-referrer-when-downgrade"
-                        ></iframe>
+
+                    <div class="map-wrapper" style="display: flex; flex-direction: column; gap: 10px;">
+                        <div id="map" style="height: 340px; width: 100%; border-radius: var(--radius-card); z-index: 1; box-shadow: var(--shadow-card);"></div>
+                        <div id="map-status" style="font-size: 12px; color: var(--purple-main); font-weight: 600; text-align: center;"></div>
                     </div>
 
-                    <div class="places-list">
-                        <div class="card place-card">
-                            <div class="place-header">
-                                <div class="place-title">Casa Hogar Santa María</div>
-                                <div class="place-distance">A 1.2 km · 24h</div>
-                            </div>
-                            <div class="place-desc">Refugio temporal y apoyo integral.</div>
-                            <div class="place-actions">
-                                <button class="btn-call"><i class="fas fa-phone" aria-hidden="true"></i> Llamar</button>
-                                <button class="btn-route"><i class="fas fa-compass" aria-hidden="true"></i> Cómo llegar</button>
-                            </div>
-                        </div>
-
-                        <div class="card place-card">
-                            <div class="place-header">
-                                <div class="place-title">Línea 100 — MIMP</div>
-                                <div class="place-distance">Nacional · 24h</div>
-                            </div>
-                            <div class="place-desc">Orientación gratuita en casos de violencia hacia la mujer.</div>
-                            <div class="place-actions">
-                                <button class="btn-call"><i class="fas fa-phone" aria-hidden="true"></i> Llamar al 100</button>
-                            </div>
-                        </div>
+                    <div class="places-list" id="places-list">
+                        <!-- El JavaScript llenará esto automáticamente con datos.js -->
                     </div>
+
+                    <button id="btn-load-more" class="btn btn-outline" style="grid-column: 1 / -1; margin: 20px auto; display: none;">
+                        <i class="fas fa-plus-circle"></i> Cargar más resultados
+                    </button>
+
                 </div>
             </div>
         </section>
@@ -395,6 +373,10 @@
         </div>
     </footer>
 
+    
+
+    <script src="datos.js"></script>
     <script src="app.js"></script>
+
 </body>
 </html>

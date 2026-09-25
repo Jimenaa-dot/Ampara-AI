@@ -518,6 +518,24 @@ img { max-width: 100%; display: block; }
 .btn-call { background: var(--purple-main); color: white; }
 .btn-route { background: white; color: var(--purple-main); border: 1px solid var(--purple-main) !important; }
 
+
+.map-placeholder {
+    flex-direction: column;
+}
+
+.badge-nearest {
+    display: inline-block;
+    animation: pulseBadge 2s infinite;
+}
+
+@keyframes pulseBadge {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+
+
 /* =========================================
    11. RESPIRA
    ========================================= */
@@ -704,4 +722,33 @@ img { max-width: 100%; display: block; }
         padding: 6px 12px;
         font-size: 12px;
     }
+}
+
+/* =========================================
+   PASO 4: AJUSTES PARA EL MAPA Y FILTROS
+   ========================================= */
+@media (max-width: 480px) {
+    .header-actions {
+        gap: 6px;
+    }
+    .btn-sos, .btn-auth {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+    .quick-exit {
+        top: 12px;
+        right: 12px;
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+}
+
+.place-card {
+    display: flex;
+    flex-direction: column;
+    transition: opacity 0.3s ease;
+}
+
+#map {
+    z-index: 1 !important;
 }

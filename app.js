@@ -8,49 +8,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // =========================================
     // 0. CONFIGURACIÓN
     // =========================================
-    // ⚠️ IMPORTANTE: usa /webhook/ (PRODUCCIÓN), no /webhook-test/.
     const AMPARA_CHAT_WEBHOOK_URL = 'https://ncol021.app.n8n.cloud/webhook/ampara-chat';
-
     const amparaSessionId = 'sess_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-
-    // Historial en memoria para enviar contexto al webhook
     const amparaHistory = [];
 
     // =========================================
-    // Helper: limpiar texto de la IA antes de mostrarlo
+    // Helpers: limpiar texto de la IA
     // =========================================
-    // - Convierte \n literales (backslash + n) y saltos reales en espacios
-    // - Convierte **texto** en <strong>texto</strong>
-    // - Escapa HTML para evitar inyecciones
     function cleanAIText(rawText) {
         let text = String(rawText || '');
-
-        // 1) Convertir \n literales y saltos reales en espacios (evita el bug del "\n\n")
         text = text.replace(/\\n/g, ' ').replace(/\r\n|\r|\n/g, ' ');
-
-        // 2) Colapsar espacios múltiples que puedan quedar
         text = text.replace(/[ \t]{2,}/g, ' ').trim();
-
-        // 3) Escapar caracteres HTML para seguridad
-        text = text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
-
-        // 4) Convertir **negritas** en <strong>negritas</strong>
+        text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-
-        // 5) Convertir *cursiva* suelta en <em>cursiva</em> (opcional)
-        //    Ojo: se hace después de las negritas para no chocar
         text = text.replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
-
-        // 6) Quitar residuos de almohadillas tipo "## Título" al inicio de frase
         text = text.replace(/(^|\s)#{1,6}\s+/g, '$1');
-
         return text;
     }
 
-    // Limpia el texto ANTES de guardarlo en el historial (para no reenviar \n al webhook)
     function cleanForHistory(rawText) {
         let text = String(rawText || '');
         text = text.replace(/\\n/g, ' ').replace(/\r\n|\r|\n/g, ' ');
@@ -188,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================
-    // 5. CHAT — EMPÁTICO, CONTEXTUAL, HUMANO
+    // 5. CHAT — EMPÁTICO CON N8N
     // =========================================
     const chatInput = document.getElementById('chat-input');
     const sendChatBtn = document.getElementById('btn-send-chat');
@@ -212,15 +187,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         now.getMinutes().toString().padStart(2, '0');
 
         const textNode = document.createElement('span');
-
         if (sender === 'ai') {
-            // Limpiamos el texto de la IA: quita \n literales y convierte **negritas**
             textNode.innerHTML = cleanAIText(text) + ' ';
         } else {
-            // Para mensajes del usuario usamos textContent (más seguro, sin HTML)
             textNode.textContent = text + ' ';
         }
-
         msgDiv.appendChild(textNode);
 
         const timeSpan = document.createElement('span');
@@ -258,12 +229,9 @@ document.addEventListener('DOMContentLoaded', () => {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    // =========================================
-    // Fallback LOCAL: solo se usa si el webhook falla.
-    // =========================================
+    // Fallback local si el webhook falla
     function localFallbackResponse(userMessage) {
         const lower = userMessage.toLowerCase();
-
         const highRisk = /(me va(n)? a matar|me quiere(n)? matar|tiene(n)? (un )?(arma|cuchillo|pistola)|me est(á|a|án) (golpeando|ahorcando|violando|persiguiendo)|me est(á|a|án) siguiendo|me siguen|siguiéndome|me persiguen|est(á|a|án) afuera de (mi|la) (casa|cuarto)|no puedo salir|auxilio|socorro|ay(ú|u)dame ya|ayuda urgente|peligro ahora)/;
         const digitalHarrassment = /(capturas|amenaza con publicar|sextorsi|me hacke|me escribe por (instagram|whatsapp|facebook|tiktok|wasap)|extorsi|me amenaza por (wasap|whatsapp|instagram|facebook)|me mandó (fotos|mensajes) amenaz|tiene (mis )?fotos|me filma sin permiso|me está extorsionando|difundir (fotos|imágenes|videos))/;
         const domestic = /(mi (esposo|pareja|marido|novio|enamorado|papá|padrastro|hermano|tío|abuelo) me (pega|golpea|empuja|insulta|humilla|amenaza|controla|encierra|persigue)|me revisa el celular|no me deja (salir|trabajar|estudiar)|me quita el dinero|violencia en (mi )?casa|abuso en (mi )?casa|me cela mucho|me prohíbe|me empujó)/;
@@ -273,67 +241,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const lowRisk = /(incóm|incomod|ansi|triste|nervios|preocupa|no sé qué hacer|me siento mal|estoy cansada|estoy agotada)/;
 
         if (highRisk.test(lower)) {
-            return {
-                reply: 'Escúchame: tu seguridad es lo primero. Presiona YA el botón rojo "Necesito ayuda ahora" arriba en la página, y llama al 105 o al 100. Aléjate del lugar o enciérrate donde puedas, y si hay gente cerca, pídeles ayuda. Estoy aquí, no cierres esta conversación.',
-                risk_level: 'alto',
-                suggested_actions: ['alerta'],
-                escalate: true
-            };
+            return { reply: 'Escúchame: tu seguridad es lo primero. Presiona YA el botón rojo "Necesito ayuda ahora" arriba en la página, y llama al 105 o al 100. Aléjate del lugar o enciérrate donde puedas, y si hay gente cerca, pídeles ayuda. Estoy aquí, no cierres esta conversación.', risk_level: 'alto', suggested_actions: ['alerta'], escalate: true };
         }
         if (digitalHarrassment.test(lower)) {
-            return {
-                reply: 'Gracias por contármelo, no estás sola. Primero: no le respondas nada y no borres los mensajes, porque son tu prueba. Toma capturas de todo (perfil, conversación, número) y guárdalas en la sección Analizar evidencia, que las deja fuera de tu celular por si él tiene acceso. Después bloquealo y repórtalo en la plataforma. Si quieres, seguimos hablando.',
-                risk_level: 'medio',
-                suggested_actions: ['evidencias'],
-                escalate: false
-            };
+            return { reply: 'Gracias por contármelo, no estás sola. Primero: no le respondas nada y no borres los mensajes, porque son tu prueba. Toma capturas de todo (perfil, conversación, número) y guárdalas en la sección Analizar evidencia, que las deja fuera de tu celular por si él tiene acceso. Después bloquealo y repórtalo en la plataforma. Si quieres, seguimos hablando.', risk_level: 'medio', suggested_actions: ['evidencias'], escalate: false };
         }
         if (domestic.test(lower)) {
-            return {
-                reply: 'Lamento mucho que estés pasando esto, y quiero que sepas algo importante: no es tu culpa. Lo que describes es violencia, aunque él te diga que exageras. ¿Hay algún lugar donde puedas estar segura ahora, o alguien de confianza a quien puedas escribirle? Si tienes fotos o mensajes, guárdalos en Analizar evidencia por si los necesitas después. Y si en algún momento sientes peligro, el botón rojo de arriba te conecta al instante. ¿Quieres contarme un poco más?',
-                risk_level: 'medio',
-                suggested_actions: ['evidencias', 'refugios'],
-                escalate: false
-            };
+            return { reply: 'Lamento mucho que estés pasando esto, y quiero que sepas algo importante: no es tu culpa. Lo que describes es violencia, aunque él te diga que exageras. ¿Hay algún lugar donde puedas estar segura ahora, o alguien de confianza a quien puedas escribirle? Si tienes fotos o mensajes, guárdalos en Analizar evidencia por si los necesitas después. Y si en algún momento sientes peligro, el botón rojo de arriba te conecta al instante. ¿Quieres contarme un poco más?', risk_level: 'medio', suggested_actions: ['evidencias', 'refugios'], escalate: false };
         }
         if (acosoCallejero.test(lower)) {
-            return {
-                reply: 'Comprendo, y es normal sentirte así. Si puedes, camina hacia un lugar con más gente (una tienda, un banco, una farmacia) y quédate ahí un momento. Si tienes a alguien de confianza cerca, llámalo y cuéntale dónde estás. Si sientes que te siguen de verdad, activa la alerta con el botón rojo de arriba para que tu contacto de emergencia reciba tu ubicación. ¿Dónde estás ahora?',
-                risk_level: 'medio',
-                suggested_actions: ['alerta', 'refugios'],
-                escalate: false
-            };
+            return { reply: 'Comprendo, y es normal sentirte así. Si puedes, camina hacia un lugar con más gente (una tienda, un banco, una farmacia) y quédate ahí un momento. Si tienes a alguien de confianza cerca, llámalo y cuéntale dónde estás. Si sientes que te siguen de verdad, activa la alerta con el botón rojo de arriba para que tu contacto de emergencia reciba tu ubicación. ¿Dónde estás ahora?', risk_level: 'medio', suggested_actions: ['alerta', 'refugios'], escalate: false };
         }
         if (incomodidad.test(lower)) {
-            return {
-                reply: 'Comprendo, no estás sola. ¿Hay algún lugar con más gente o recepción donde puedas estar mientras decides? Si quieres, activamos la Alerta de Ampara para que tu contacto de emergencia venga por ti con tu ubicación. ¿Lo hacemos?',
-                risk_level: 'medio',
-                suggested_actions: ['alerta'],
-                escalate: false
-            };
+            return { reply: 'Comprendo, no estás sola. ¿Hay algún lugar con más gente o recepción donde puedas estar mientras decides? Si quieres, activamos la Alerta de Ampara para que tu contacto de emergencia venga por ti con tu ubicación. ¿Lo hacemos?', risk_level: 'medio', suggested_actions: ['alerta'], escalate: false };
         }
         if (mediumRisk.test(lower)) {
-            return {
-                reply: 'Gracias por confiarme esto, entiendo que no es fácil. ¿Hay algún lugar donde te sientas más segura ahora mismo? Guarda cualquier mensaje, captura o audio que tengas en Analizar evidencia, y si quieres revisa los refugios y líneas de ayuda cercanas. Si la situación empeora, el botón rojo de arriba activa ayuda de inmediato. ¿Quieres contarme un poco más?',
-                risk_level: 'medio',
-                suggested_actions: ['evidencias', 'refugios'],
-                escalate: false
-            };
+            return { reply: 'Gracias por confiarme esto, entiendo que no es fácil. ¿Hay algún lugar donde te sientas más segura ahora mismo? Guarda cualquier mensaje, captura o audio que tengas en Analizar evidencia, y si quieres revisa los refugios y líneas de ayuda cercanas. Si la situación empeora, el botón rojo de arriba activa ayuda de inmediato. ¿Quieres contarme un poco más?', risk_level: 'medio', suggested_actions: ['evidencias', 'refugios'], escalate: false };
         }
         if (lowRisk.test(lower)) {
-            return {
-                reply: 'Tiene sentido sentirte así, y me alegra que me lo cuentes. ¿Quieres contarme un poco más de lo que pasó? Estoy aquí contigo. Si te ayuda, prueba respirar lento unos momentos en la sección Necesito calma.',
-                risk_level: 'bajo',
-                suggested_actions: ['respirar'],
-                escalate: false
-            };
+            return { reply: 'Tiene sentido sentirte así, y me alegra que me lo cuentes. ¿Quieres contarme un poco más de lo que pasó? Estoy aquí contigo. Si te ayuda, prueba respirar lento unos momentos en la sección Necesito calma.', risk_level: 'bajo', suggested_actions: ['respirar'], escalate: false };
         }
-        return {
-            reply: 'Estoy aquí contigo. ¿Puedes contarme un poco más sobre lo que está pasando?',
-            risk_level: 'bajo',
-            suggested_actions: [],
-            escalate: false
-        };
+        return { reply: 'Estoy aquí contigo. ¿Puedes contarme un poco más sobre lo que está pasando?', risk_level: 'bajo', suggested_actions: [], escalate: false };
     }
 
     function showTypingIndicator() {
@@ -361,11 +289,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!res.ok) throw new Error('Respuesta no OK del webhook: ' + res.status);
                 const data = await res.json();
                 if (!data || !data.reply) throw new Error('Respuesta del webhook sin campo "reply"');
-
-                // Guardar turno LIMPIO en el historial local (sin \n ni markdown)
                 amparaHistory.push({ role: 'user', content: cleanForHistory(userMessage) });
                 amparaHistory.push({ role: 'assistant', content: cleanForHistory(data.reply) });
-
                 return {
                     reply: data.reply,
                     risk_level: data.risk_level || 'bajo',
@@ -385,9 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const minDelay = new Promise(resolve => setTimeout(resolve, 900));
         const [result] = await Promise.all([getAIResponse(userMessage), minDelay]);
         if (typingDiv) typingDiv.remove();
-
         addMessage(result.reply, 'ai', result.suggested_actions);
-
         if (result.escalate) {
             openEmergencyModal();
         }
@@ -425,7 +348,6 @@ document.addEventListener('DOMContentLoaded', () => {
             dropzone.hidden = true;
             evidenceProgress.hidden = false;
             requestAnimationFrame(() => { progressFill.style.width = '100%'; });
-
             setTimeout(() => {
                 evidenceProgress.hidden = true;
                 evidenceResult.hidden = false;
@@ -447,7 +369,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (breathingInterval) clearInterval(breathingInterval);
         let phase = 'inhale';
         let seconds = 4;
-
         breathingCircle.classList.add('inhale');
         breathingText.textContent = 'Inhala';
 
@@ -487,54 +408,214 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================
-    // 8. REFUGIOS: BÚSQUEDA POR CIUDAD + MAPA
+    // 8. GEOLOCALIZACIÓN, MAPA Y RENDERIZADO
     // =========================================
-    const cityInput = document.getElementById('city-search-input');
-    const btnSearchCity = document.getElementById('btn-search-city');
-    const mapPlaceholder = document.getElementById('map-placeholder');
-    const mapFrame = document.getElementById('map-frame');
-    const mapHint = document.getElementById('map-hint');
+    let map;
+    let userMarker;
+    let shelterMarkers = [];
+    const mapStatus = document.getElementById('map-status');
 
-    let activeChipQuery = document.querySelector('.chip.active')
-        ? document.querySelector('.chip.active').getAttribute('data-query')
-        : 'casas de acogida para mujeres';
+    function renderizarTarjetas() {
+        const placesList = document.getElementById('places-list');
+        if (!placesList || typeof lugares === 'undefined') return;
 
-    function updateMap(city) {
-        const cleanCity = (city || '').trim();
-        if (!cleanCity) {
-            if (mapHint) mapHint.hidden = false;
+        placesList.innerHTML = '';
+
+        lugares.forEach(lugar => {
+            const card = document.createElement('div');
+            card.className = 'card place-card';
+            card.setAttribute('data-category', lugar.categoria);
+            if (lugar.lat && lugar.lng) {
+                card.setAttribute('data-lat', lugar.lat);
+                card.setAttribute('data-lng', lugar.lng);
+            }
+
+            const distanciaTexto = (lugar.lat && lugar.lng) ? 'Calculando...' : 'Nacional · 24h';
+            const botonRuta = (lugar.lat && lugar.lng)
+                ? `<button class="btn-route"><i class="fas fa-compass"></i> Cómo llegar</button>`
+                : '';
+
+            card.innerHTML = `
+                <div class="place-header">
+                    <div class="place-title">${lugar.nombre}</div>
+                    <div class="place-distance">${distanciaTexto}</div>
+                </div>
+                <div class="place-desc">${lugar.desc}</div>
+                <div class="place-actions">
+                    <button class="btn-call" onclick="window.location.href='tel:${lugar.telefono}'">
+                        <i class="fas fa-phone"></i> Llamar
+                    </button>
+                    ${botonRuta}
+                </div>
+            `;
+            placesList.appendChild(card);
+        });
+    }
+
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+
+    function initMap(userLat, userLng) {
+        if (map) return;
+        map = L.map('map').setView([userLat, userLng], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        userMarker = L.circleMarker([userLat, userLng], {
+            color: '#520A5B', fillColor: '#520A5B', fillOpacity: 0.5, radius: 8
+        }).addTo(map).bindPopup('Tu ubicación actual').openPopup();
+    }
+
+    function updateShelterUI(userLat, userLng, isFallback = false) {
+        if (mapStatus) {
+            mapStatus.textContent = isFallback
+                ? 'Usando ubicación aproximada (Lima, Perú)'
+                : '📍 Ubicación detectada. Mostrando refugios cercanos.';
+        }
+
+        initMap(userLat, userLng);
+
+        shelterMarkers.forEach(marker => map.removeLayer(marker));
+        shelterMarkers = [];
+
+        let closestDistance = Infinity;
+        let closestCard = null;
+        const shelterCards = document.querySelectorAll('.place-card[data-lat]');
+
+        shelterCards.forEach(card => {
+            const lat = parseFloat(card.getAttribute('data-lat'));
+            const lng = parseFloat(card.getAttribute('data-lng'));
+            const distanceEl = card.querySelector('.place-distance');
+            const routeBtn = card.querySelector('.btn-route');
+
+            if (distanceEl && !isNaN(lat) && !isNaN(lng)) {
+                const dist = calculateDistance(userLat, userLng, lat, lng);
+                distanceEl.textContent = `A ${dist.toFixed(1)} km`;
+
+                const marker = L.marker([lat, lng]).addTo(map)
+                    .bindPopup(`<b>${card.querySelector('.place-title').textContent}</b><br>${card.querySelector('.place-desc').textContent}`);
+                shelterMarkers.push(marker);
+
+                if (routeBtn) {
+                    routeBtn.onclick = (e) => {
+                        e.preventDefault();
+                        const url = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLng}&destination=${lat},${lng}`;
+                        window.open(url, '_blank');
+                    };
+                }
+
+                if (dist < closestDistance) {
+                    closestDistance = dist;
+                    closestCard = card;
+                }
+            }
+        });
+
+        const placesList = document.getElementById('places-list');
+        const allCards = Array.from(document.querySelectorAll('.place-card'));
+        const sortedCards = allCards.sort((a, b) => {
+            const distA = parseFloat(a.querySelector('.place-distance').textContent.replace('A ', '')) || 9999;
+            const distB = parseFloat(b.querySelector('.place-distance').textContent.replace('A ', '')) || 9999;
+            return distA - distB;
+        });
+        sortedCards.forEach(card => placesList.appendChild(card));
+
+        if (closestCard) {
+            closestCard.style.border = '2px solid var(--purple-main)';
+            const titleEl = closestCard.querySelector('.place-title');
+            if (titleEl && !titleEl.querySelector('.badge-nearest')) {
+                const badge = document.createElement('span');
+                badge.className = 'badge-nearest';
+                badge.textContent = 'Más cercano';
+                badge.style.cssText = 'background: var(--purple-main); color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 8px; vertical-align: middle;';
+                titleEl.appendChild(badge);
+            }
+        }
+    }
+
+    function initGeolocation() {
+        if (!navigator.geolocation) {
+            if (mapStatus) mapStatus.textContent = 'Geolocalización no soportada.';
             return;
         }
-        if (mapHint) mapHint.hidden = true;
-
-        const query = `${activeChipQuery} cerca de ${cleanCity}`;
-        const src = `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
-
-        mapFrame.src = src;
-        if (mapPlaceholder) mapPlaceholder.hidden = true;
-        mapFrame.hidden = false;
+        navigator.geolocation.getCurrentPosition(
+            (position) => updateShelterUI(position.coords.latitude, position.coords.longitude, false),
+            (error) => {
+                console.warn('⚠️ Permiso denegado. Usando ubicación por defecto (Lima).');
+                updateShelterUI(-12.046374, -77.042793, true);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
     }
 
-    if (btnSearchCity && cityInput) {
-        btnSearchCity.addEventListener('click', () => updateMap(cityInput.value));
-        cityInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                updateMap(cityInput.value);
-            }
+    // =========================================
+    // 9. FILTROS CON "CARGAR MÁS" (5 por vez)
+    // =========================================
+    const chips = document.querySelectorAll('.chip');
+    const btnLoadMore = document.getElementById('btn-load-more');
+    const CARDS_POR_PAGINA = 5;
+    let cardsMostradas = CARDS_POR_PAGINA;
+    let categoriaActiva = 'casas-hogar';
+
+    function aplicarFiltroYPaginacion() {
+        const todasLasCards = Array.from(document.querySelectorAll('.place-card'));
+        const cardsDeCategoria = todasLasCards.filter(card =>
+            card.getAttribute('data-category') === categoriaActiva
+        );
+
+        todasLasCards.forEach(card => card.style.display = 'none');
+
+        cardsDeCategoria.slice(0, cardsMostradas).forEach(card => {
+            card.style.display = 'flex';
         });
+
+        if (btnLoadMore) {
+            if (cardsDeCategoria.length > cardsMostradas) {
+                btnLoadMore.style.display = 'inline-flex';
+                const restantes = cardsDeCategoria.length - cardsMostradas;
+                btnLoadMore.innerHTML = `<i class="fas fa-plus-circle"></i> Cargar más (${restantes} restantes)`;
+            } else {
+                btnLoadMore.style.display = 'none';
+            }
+        }
+
+        if (map) map.invalidateSize();
     }
 
-    document.querySelectorAll('.chip').forEach(chip => {
+    chips.forEach(chip => {
         chip.addEventListener('click', () => {
-            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+            chips.forEach(c => c.classList.remove('active'));
             chip.classList.add('active');
-            activeChipQuery = chip.getAttribute('data-query') || activeChipQuery;
-            if (cityInput && cityInput.value.trim()) {
-                updateMap(cityInput.value);
-            }
+            categoriaActiva = chip.getAttribute('data-filter');
+            cardsMostradas = CARDS_POR_PAGINA;
+            aplicarFiltroYPaginacion();
         });
     });
+
+    if (btnLoadMore) {
+        btnLoadMore.addEventListener('click', () => {
+            cardsMostradas += CARDS_POR_PAGINA;
+            aplicarFiltroYPaginacion();
+        });
+    }
+
+    // =========================================
+    // INICIALIZACIÓN
+    // =========================================
+    renderizarTarjetas();
+    initGeolocation();
+
+    setTimeout(() => {
+        aplicarFiltroYPaginacion();
+    }, 200);
 
     console.log('%c🛡️ Ampara AI', 'color: #520A5B; font-size: 20px; font-weight: bold;');
     console.log('%cSitio web iniciado correctamente.', 'color: #6D8A68;');
