@@ -234,10 +234,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const lower = userMessage.toLowerCase();
         const highRisk = /(me va(n)? a matar|me quiere(n)? matar|tiene(n)? (un )?(arma|cuchillo|pistola)|me est(á|a|án) (golpeando|ahorcando|violando|persiguiendo)|me est(á|a|án) siguiendo|me siguen|siguiéndome|me persiguen|est(á|a|án) afuera de (mi|la) (casa|cuarto)|no puedo salir|auxilio|socorro|ay(ú|u)dame ya|ayuda urgente|peligro ahora)/;
         const digitalHarrassment = /(capturas|amenaza con publicar|sextorsi|me hacke|me escribe por (instagram|whatsapp|facebook|tiktok|wasap)|extorsi|me amenaza por (wasap|whatsapp|instagram|facebook)|me mandó (fotos|mensajes) amenaz|tiene (mis )?fotos|me filma sin permiso|me está extorsionando|difundir (fotos|imágenes|videos))/;
-        const domestic = /(mi (esposo|pareja|marido|novio|enamorado|papá|padrastro|hermano|tío|abuelo) me (pega|golpea|empuja|insulta|humilla|amenaza|controla|encierra|persigue)|me revisa el celular|no me deja (salir|trabajar|estudiar)|me quita el dinero|violencia en (mi )?casa|abuso en (mi )?casa|me cela mucho|me prohíbe|me empujó)/;
+        const domestic = /(mi (esposo|pareja|marido|novio|enamorado|papá|padrastro|hermano|tío|abuelo) me (pega|golpea|empuja|insulta|insultó|humilla|humilló|amenaza|amenazó|controla|encierra|persigue|grita|gritó)|me revisa el celular|no me deja (salir|trabajar|estudiar)|me quita el dinero|violencia en (mi )?casa|abuso en (mi )?casa|me cela mucho|me prohíbe|me empujó|tuvimos una discusi[oó]n|discutimos y me (grit[oó]|insult[oó])|me (grit[oó]|insult[oó]) (mi|el|la))/;
         const acosoCallejero = /(me sigue(n)? (unos )?hombres|me sigue (un|el) (hombre|tipo|señor)|me acosa en la calle|me silba|me dice cosas por la calle|me persigue en la calle|me mira raro en la calle)/;
         const incomodidad = /(fiesta|reunión|bar|antro|discoteca|me dejaron (mis amigas|mis amigos)|sola en (una|la) fiesta|no conozco a nadie|no sé cómo irme|no me siento cómoda|me da miedo estar aquí)/;
-        const mediumRisk = /(me sigue|me persigue|me amenaz|me controla|me revisa|no me deja|me insulta|me grita|me acosa|me molesta|me incómoda|no me siento segura|me da miedo)/;
+        const mediumRisk = /(me sigue|me persigue|me amenaz|me controla|me revisa|no me deja|me insult|me grit|me acosa|me molesta|me incómoda|no me siento segura|me da miedo|discusi[oó]n)/;
         const lowRisk = /(incóm|incomod|ansi|triste|nervios|preocupa|no sé qué hacer|me siento mal|estoy cansada|estoy agotada)/;
 
         if (highRisk.test(lower)) {
@@ -286,9 +286,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         history: amparaHistory.slice(-8)
                     })
                 });
-                if (!res.ok) throw new Error('Respuesta no OK del webhook: ' + res.status);
+                if (!res.ok) {
+                    const bodyText = await res.text().catch(() => '(sin cuerpo)');
+                    throw new Error(`Respuesta no OK del webhook: ${res.status} — ${bodyText}`);
+                }
                 const data = await res.json();
-                if (!data || !data.reply) throw new Error('Respuesta del webhook sin campo "reply"');
+                if (!data || !data.reply) {
+                    console.error('⚠️ El webhook respondió pero sin campo "reply". Payload recibido:', data);
+                    throw new Error('Respuesta del webhook sin campo "reply"');
+                }
                 amparaHistory.push({ role: 'user', content: cleanForHistory(userMessage) });
                 amparaHistory.push({ role: 'assistant', content: cleanForHistory(data.reply) });
                 return {
