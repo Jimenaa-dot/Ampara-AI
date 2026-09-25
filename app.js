@@ -1,120 +1,154 @@
 /* =========================================
-   AMPARA AI - LÓGICA DE LA APLICACIÓN
+   AMPARA AI - LÓGICA DEL SITIO WEB
    ========================================= */
 
 document.addEventListener('DOMContentLoaded', () => {
     'use strict';
 
     // =========================================
-    // 1. GESTIÓN DE PANTALLAS (SPA)
+    // 1. SALIDA RÁPIDA
     // =========================================
-    const screens = document.querySelectorAll('.screen');
-    const backButtons = document.querySelectorAll('.back-btn, [data-target]');
+    const btnQuickExit = document.getElementById('btn-quick-exit');
+    if (btnQuickExit) {
+        btnQuickExit.addEventListener('click', () => {
+            // Reemplaza el historial para que el botón "atrás" no vuelva al sitio
+            window.location.replace('https://www.google.com');
+        });
+    }
 
-    /**
-     * Muestra una pantalla específica ocultando las demás.
-     * @param {string} screenId - ID de la pantalla a mostrar.
-     */
-    function showScreen(screenId) {
-        screens.forEach(screen => screen.classList.remove('active'));
-        const targetScreen = document.getElementById(screenId);
-        if (targetScreen) {
-            targetScreen.classList.add('active');
-            targetScreen.scrollTop = 0;
+    // Tecla de escape rápida: presionar ESC tres veces sale del sitio
+    let escCount = 0;
+    let escTimer = null;
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        escCount++;
+        clearTimeout(escTimer);
+        escTimer = setTimeout(() => { escCount = 0; }, 1200);
+        if (escCount >= 3) {
+            window.location.replace('https://www.google.com');
+        }
+    });
+
+    // =========================================
+    // 2. MENÚ MÓVIL
+    // =========================================
+    const navToggle = document.getElementById('nav-toggle');
+    const mainNav = document.getElementById('main-nav');
+    if (navToggle && mainNav) {
+        navToggle.addEventListener('click', () => {
+            const isOpen = mainNav.classList.toggle('open');
+            navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+        mainNav.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                mainNav.classList.remove('open');
+                navToggle.setAttribute('aria-expanded', 'false');
+            });
+        });
+    }
+
+    // =========================================
+    // 3. MODAL DE EMERGENCIA
+    // =========================================
+    const emergencyModal = document.getElementById('emergency-modal');
+    const btnEmergency = document.getElementById('btn-emergency');
+    const btnCancelAlert = document.getElementById('btn-cancel-alert');
+
+    function openEmergencyModal() {
+        if (emergencyModal) emergencyModal.hidden = false;
+    }
+    function closeEmergencyModal() {
+        if (emergencyModal) emergencyModal.hidden = true;
+    }
+
+    if (btnEmergency) btnEmergency.addEventListener('click', openEmergencyModal);
+    if (btnCancelAlert) btnCancelAlert.addEventListener('click', closeEmergencyModal);
+    if (emergencyModal) {
+        emergencyModal.addEventListener('click', (e) => {
+            if (e.target === emergencyModal) closeEmergencyModal();
+        });
+    }
+
+    // =========================================
+    // 4. MODAL DE AUTENTICACIÓN (INICIAR SESIÓN / REGISTRO)
+    // =========================================
+    const authModal = document.getElementById('auth-modal');
+    const btnAuth = document.getElementById('btn-auth');
+    const btnCloseAuth = document.getElementById('btn-close-auth');
+    const linkRegister = document.getElementById('link-register');
+    const authForm = document.getElementById('auth-form');
+    const authTitle = authModal ? authModal.querySelector('h2') : null;
+    const authSubtitle = authModal ? authModal.querySelector('.auth-header p') : null;
+    const authSubmitBtn = authForm ? authForm.querySelector('button[type="submit"]') : null;
+
+    let isRegisterMode = false;
+
+    function openAuthModal() {
+        if (authModal) authModal.hidden = false;
+        // Resetear a modo inicio de sesión por defecto
+        setAuthMode(false);
+    }
+
+    function closeAuthModal() {
+        if (authModal) authModal.hidden = true;
+    }
+
+    function setAuthMode(registerMode) {
+        isRegisterMode = registerMode;
+        if (registerMode) {
+            if (authTitle) authTitle.textContent = 'Crea tu cuenta';
+            if (authSubtitle) authSubtitle.textContent = 'Tu espacio seguro comienza aquí.';
+            if (authSubmitBtn) authSubmitBtn.textContent = 'Registrarse';
+            if (linkRegister) linkRegister.textContent = 'Inicia sesión aquí';
+        } else {
+            if (authTitle) authTitle.textContent = 'Bienvenida de nuevo';
+            if (authSubtitle) authSubtitle.textContent = 'Tu espacio seguro te espera.';
+            if (authSubmitBtn) authSubmitBtn.textContent = 'Iniciar sesión';
+            if (linkRegister) linkRegister.textContent = 'Regístrate aquí';
         }
     }
 
-    // Exponer la función globalmente por si se necesita desde HTML
-    window.showScreen = showScreen;
-
-    // Navegación desde botones con data-target
-    backButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const target = btn.getAttribute('data-target') || 'screen-home';
-            showScreen(target);
+    if (btnAuth) btnAuth.addEventListener('click', openAuthModal);
+    if (btnCloseAuth) btnCloseAuth.addEventListener('click', closeAuthModal);
+    if (authModal) {
+        authModal.addEventListener('click', (e) => {
+            if (e.target === authModal) closeAuthModal();
         });
-    });
+    }
 
-    // Botón Comenzar
-    const btnStart = document.getElementById('btn-start');
-    if (btnStart) btnStart.addEventListener('click', () => showScreen('screen-home'));
+    if (linkRegister) {
+        linkRegister.addEventListener('click', (e) => {
+            e.preventDefault();
+            setAuthMode(!isRegisterMode);
+        });
+    }
 
-    // Botones del menú principal
-    const navMap = {
-        'btn-emergency': 'screen-emergency',
-        'btn-calm': 'screen-calm',
-        'btn-location': 'screen-nearby',
-        'btn-chat': 'screen-chat',
-        'btn-evidence': 'screen-evidence'
-    };
+    if (authForm) {
+        authForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
 
-    Object.keys(navMap).forEach(btnId => {
-        const btn = document.getElementById(btnId);
-        if (btn) btn.addEventListener('click', () => showScreen(navMap[btnId]));
-    });
-
-    // Botones específicos
-    const btnCancelAlert = document.getElementById('btn-cancel-alert');
-    if (btnCancelAlert) btnCancelAlert.addEventListener('click', () => showScreen('screen-home'));
-
-    const btnExitSafe = document.getElementById('btn-exit-safe');
-    if (btnExitSafe) btnExitSafe.addEventListener('click', () => showScreen('screen-home'));
-
-    // =========================================
-    // 2. TOGGLE MODO SEGURO
-    // =========================================
-    const safeModeToggle = document.getElementById('safe-mode-toggle');
-    let isSafeModeOn = false;
-
-    if (safeModeToggle) {
-        safeModeToggle.addEventListener('click', () => {
-            isSafeModeOn = !isSafeModeOn;
-
-            if (isSafeModeOn) {
-                safeModeToggle.classList.remove('off');
-                safeModeToggle.innerHTML = '<i class="fas fa-lock"></i> Modo Seguro';
-                showScreen('screen-safe-mode');
-            } else {
-                safeModeToggle.classList.add('off');
-                safeModeToggle.innerHTML = '<i class="fas fa-unlock"></i> Modo Seguro';
-                showToast('Modo Seguro Desactivado');
+            if (!email || !password) {
+                alert('Por favor, completa todos los campos.');
+                return;
             }
+
+            // Simulación de éxito
+            const action = isRegisterMode ? 'Registro' : 'Inicio de sesión';
+            console.log(`%c✅ ${action} exitoso para: ${email}`, 'color: #22C55E; font-weight: bold;');
+            
+            // Cerrar modal y limpiar formulario
+            closeAuthModal();
+            authForm.reset();
+            
+            // Mostrar mensaje de éxito (puedes cambiar esto por una redirección real)
+            alert(`¡${action} exitoso! Bienvenida, ${email}`);
         });
     }
 
-    /**
-     * Muestra un toast temporal en pantalla.
-     * @param {string} message
-     */
-    function showToast(message) {
-        const toast = document.createElement('div');
-        toast.textContent = message;
-        toast.style.cssText = `
-            position: fixed;
-            bottom: 90px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #333;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 24px;
-            font-size: 14px;
-            z-index: 9999;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        `;
-        document.body.appendChild(toast);
-
-        requestAnimationFrame(() => { toast.style.opacity = '1'; });
-
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 300);
-        }, 2000);
-    }
-
     // =========================================
-    // 3. CHAT SIMULADO
+    // 5. CHAT SIMULADO
     // =========================================
     const chatInput = document.getElementById('chat-input');
     const sendChatBtn = document.getElementById('btn-send-chat');
@@ -125,18 +159,12 @@ document.addEventListener('DOMContentLoaded', () => {
         "Entiendo. Estoy aquí para escucharte sin juzgarte. ¿Puedes contarme un poco más?",
         "Gracias por confiar en mí. Recuerda que no estás sola. ¿Hay alguien con quien te sientas segura ahora?",
         "Eso suena muy difícil. Tu seguridad es lo más importante. ¿Quieres que busquemos juntas un refugio cerca?",
-        "Estoy procesando lo que me dices. Si en algún momento sientes que estás en peligro, podemos activar una alerta silenciosa.",
+        "Si en algún momento sientes que estás en peligro, podemos activar una alerta silenciosa.",
         "Válido. Tómate tu tiempo. Respira profundo. Estoy aquí contigo."
     ];
 
-    /**
-     * Añade un mensaje al chat.
-     * @param {string} text
-     * @param {'user'|'ai'} sender
-     */
     function addMessage(text, sender) {
         if (!chatMessages) return;
-
         const msgDiv = document.createElement('div');
         msgDiv.classList.add('message', sender === 'user' ? 'message-user' : 'message-ai');
 
@@ -149,72 +177,73 @@ document.addEventListener('DOMContentLoaded', () => {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    /**
-     * Simula la respuesta automática de la IA.
-     * @param {string} userMessage
-     */
     function simulateAIResponse(userMessage) {
         setTimeout(() => {
-            let responseText;
             const lowerMsg = userMessage.toLowerCase();
-
-            if (lowerMsg.includes('seguro')) {
-                responseText = "Me alegra saber que estás en un lugar seguro. ¿Quieres que te guíe en un ejercicio de respiración para calmar la ansiedad?";
+            let responseText;
+            if (lowerMsg.includes('segur')) {
+                responseText = "Me alegra saber que estás en un lugar seguro. ¿Quieres que te guíe en un ejercicio de respiración?";
             } else if (lowerMsg.includes('ayuda')) {
-                responseText = "Entiendo que necesitas ayuda. Puedo conectarte con una línea de emergencia o mostrarte refugios cercanos. ¿Qué prefieres?";
+                responseText = "Entiendo que necesitas ayuda. Puedo mostrarte refugios cercanos o líneas de emergencia. ¿Qué prefieres?";
             } else {
                 responseText = aiResponses[Math.floor(Math.random() * aiResponses.length)];
             }
             addMessage(responseText, 'ai');
-        }, 1500);
+        }, 1200);
     }
 
-    /**
-     * Maneja el envío de un mensaje del usuario.
-     * @param {string} text
-     */
     function handleUserMessage(text) {
         if (!text || !text.trim()) return;
-
         if (quickRepliesContainer) quickRepliesContainer.style.display = 'none';
-
         addMessage(text, 'user');
         if (chatInput) chatInput.value = '';
-
         simulateAIResponse(text);
     }
 
-    if (sendChatBtn) {
+    if (sendChatBtn && chatInput) {
         sendChatBtn.addEventListener('click', () => handleUserMessage(chatInput.value));
-    }
-
-    if (chatInput) {
         chatInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') handleUserMessage(chatInput.value);
         });
     }
 
-    // Botones de respuesta rápida
     document.querySelectorAll('.quick-reply-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const reply = btn.getAttribute('data-reply');
-            handleUserMessage(reply);
-        });
+        btn.addEventListener('click', () => handleUserMessage(btn.getAttribute('data-reply')));
     });
 
     // =========================================
-    // 4. ANIMACIÓN DE RESPIRACIÓN
+    // 6. ANÁLISIS DE EVIDENCIA (demo)
+    // =========================================
+    const dropzone = document.getElementById('evidence-dropzone');
+    const evidenceProgress = document.getElementById('evidence-progress');
+    const progressFill = document.getElementById('progress-fill');
+    const evidenceResult = document.getElementById('evidence-result');
+
+    if (dropzone) {
+        dropzone.addEventListener('click', () => {
+            dropzone.hidden = true;
+            evidenceProgress.hidden = false;
+            requestAnimationFrame(() => { progressFill.style.width = '100%'; });
+
+            setTimeout(() => {
+                evidenceProgress.hidden = true;
+                evidenceResult.hidden = false;
+            }, 1400);
+        });
+    }
+
+    // =========================================
+    // 7. EJERCICIO DE RESPIRACIÓN
     // =========================================
     const breathingCircle = document.getElementById('breathing-circle');
     const breathingText = document.getElementById('breathing-text');
-    const btnPause = document.getElementById('btn-pause');
+    const btnToggleBreathing = document.getElementById('btn-toggle-breathing');
 
     let breathingInterval = null;
-    let isBreathingActive = true;
+    let isBreathingActive = false;
 
     function startBreathingAnimation() {
         if (breathingInterval) clearInterval(breathingInterval);
-
         let phase = 'inhale';
         let seconds = 4;
 
@@ -225,67 +254,47 @@ document.addEventListener('DOMContentLoaded', () => {
             seconds--;
             if (seconds <= 0) {
                 if (phase === 'inhale') {
-                    phase = 'hold';
-                    seconds = 4;
-                    breathingText.textContent = 'Mantén';
+                    phase = 'hold'; seconds = 4; breathingText.textContent = 'Mantén';
                 } else if (phase === 'hold') {
-                    phase = 'exhale';
-                    seconds = 4;
-                    breathingText.textContent = 'Exhala';
+                    phase = 'exhale'; seconds = 4; breathingText.textContent = 'Exhala';
                     breathingCircle.classList.remove('inhale');
                 } else {
-                    phase = 'inhale';
-                    seconds = 4;
-                    breathingText.textContent = 'Inhala';
+                    phase = 'inhale'; seconds = 4; breathingText.textContent = 'Inhala';
                     breathingCircle.classList.add('inhale');
                 }
             }
         }, 1000);
     }
 
-    // Iniciar animación al entrar a la pantalla de calma
-    const btnCalm = document.getElementById('btn-calm');
-    if (btnCalm) {
-        btnCalm.addEventListener('click', () => {
-            setTimeout(() => {
-                startBreathingAnimation();
-                isBreathingActive = true;
-                if (btnPause) btnPause.innerHTML = '<i class="fas fa-pause"></i>';
-            }, 300);
-        });
+    function stopBreathingAnimation() {
+        clearInterval(breathingInterval);
+        breathingInterval = null;
+        breathingText.textContent = 'Pausado';
     }
 
-    // Pausar / Reanudar
-    if (btnPause) {
-        btnPause.addEventListener('click', () => {
+    if (btnToggleBreathing) {
+        btnToggleBreathing.addEventListener('click', () => {
+            isBreathingActive = !isBreathingActive;
             if (isBreathingActive) {
-                clearInterval(breathingInterval);
-                breathingInterval = null;
-                isBreathingActive = false;
-                btnPause.innerHTML = '<i class="fas fa-play"></i>';
-                breathingText.textContent = 'Pausado';
-            } else {
                 startBreathingAnimation();
-                isBreathingActive = true;
-                btnPause.innerHTML = '<i class="fas fa-pause"></i>';
+                btnToggleBreathing.textContent = 'Pausar ejercicio';
+            } else {
+                stopBreathingAnimation();
+                btnToggleBreathing.textContent = 'Continuar ejercicio';
             }
         });
     }
 
-    // Detener animación al salir de la pantalla de calma
-    document.querySelectorAll('[data-target="screen-home"]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (breathingInterval) {
-                clearInterval(breathingInterval);
-                breathingInterval = null;
-            }
+    // =========================================
+    // 8. FILTROS DE REFUGIOS
+    // =========================================
+    document.querySelectorAll('.chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
         });
     });
 
-    // =========================================
-    // 5. INICIALIZACIÓN
-    // =========================================
-    showScreen('screen-welcome');
     console.log('%c🛡️ Ampara AI', 'color: #520A5B; font-size: 20px; font-weight: bold;');
-    console.log('%cAplicación web iniciada correctamente.', 'color: #6D8A68;');
+    console.log('%cSitio web iniciado correctamente.', 'color: #6D8A68;');
 });
