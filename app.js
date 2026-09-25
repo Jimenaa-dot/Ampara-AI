@@ -556,31 +556,63 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     }
 
-    // =========================================
-    // 9. FILTROS CON "CARGAR MÁS" (5 por vez)
+        // =========================================
+    // 9. FILTROS CON BÚSQUEDA Y "CARGAR MÁS"
     // =========================================
     const chips = document.querySelectorAll('.chip');
     const btnLoadMore = document.getElementById('btn-load-more');
+    const searchInput = document.getElementById('search-input');
     const CARDS_POR_PAGINA = 5;
     let cardsMostradas = CARDS_POR_PAGINA;
     let categoriaActiva = 'casas-hogar';
+    let terminoBusqueda = '';
 
     function aplicarFiltroYPaginacion() {
         const todasLasCards = Array.from(document.querySelectorAll('.place-card'));
-        const cardsDeCategoria = todasLasCards.filter(card =>
+        
+        // Filtrar por categoría activa
+        let cardsFiltradas = todasLasCards.filter(card =>
             card.getAttribute('data-category') === categoriaActiva
         );
 
+        // Filtrar adicionalmente por el término de búsqueda
+        if (terminoBusqueda.trim() !== '') {
+            const termino = terminoBusqueda.toLowerCase().trim();
+            cardsFiltradas = cardsFiltradas.filter(card => {
+                const titulo = card.querySelector('.place-title')?.textContent.toLowerCase() || '';
+                const descripcion = card.querySelector('.place-desc')?.textContent.toLowerCase() || '';
+                return titulo.includes(termino) || descripcion.includes(termino);
+            });
+        }
+
+        // Ocultar TODAS las cards primero
         todasLasCards.forEach(card => card.style.display = 'none');
 
-        cardsDeCategoria.slice(0, cardsMostradas).forEach(card => {
+        // Mostrar las primeras N de las filtradas
+        cardsFiltradas.slice(0, cardsMostradas).forEach(card => {
             card.style.display = 'flex';
         });
 
+        // Mostrar mensaje si no hay resultados
+        let mensajeNoResultados = document.getElementById('no-results-msg');
+        if (cardsFiltradas.length === 0) {
+            if (!mensajeNoResultados) {
+                mensajeNoResultados = document.createElement('p');
+                mensajeNoResultados.id = 'no-results-msg';
+                mensajeNoResultados.style.cssText = 'grid-column: 1 / -1; text-align: center; color: var(--text-secondary); font-size: 14px; padding: 20px;';
+                document.getElementById('places-list').after(mensajeNoResultados);
+            }
+            mensajeNoResultados.textContent = '🔍 No se encontraron resultados. Intenta con otro distrito o cambia la categoría.';
+            mensajeNoResultados.hidden = false;
+        } else if (mensajeNoResultados) {
+            mensajeNoResultados.hidden = true;
+        }
+
+        // Mostrar u ocultar el botón "Cargar más"
         if (btnLoadMore) {
-            if (cardsDeCategoria.length > cardsMostradas) {
+            if (cardsFiltradas.length > cardsMostradas) {
                 btnLoadMore.style.display = 'inline-flex';
-                const restantes = cardsDeCategoria.length - cardsMostradas;
+                const restantes = cardsFiltradas.length - cardsMostradas;
                 btnLoadMore.innerHTML = `<i class="fas fa-plus-circle"></i> Cargar más (${restantes} restantes)`;
             } else {
                 btnLoadMore.style.display = 'none';
@@ -590,6 +622,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (map) map.invalidateSize();
     }
 
+    // Click en cada chip (categorías)
     chips.forEach(chip => {
         chip.addEventListener('click', () => {
             chips.forEach(c => c.classList.remove('active'));
@@ -600,6 +633,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Escribir en la barra de búsqueda
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            terminoBusqueda = e.target.value;
+            cardsMostradas = CARDS_POR_PAGINA; // Resetear paginación al buscar
+            aplicarFiltroYPaginacion();
+        });
+
+        // También permitir Enter para buscar
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                terminoBusqueda = e.target.value;
+                cardsMostradas = CARDS_POR_PAGINA;
+                aplicarFiltroYPaginacion();
+            }
+        });
+    }
+
+    // Click en "Cargar más"
     if (btnLoadMore) {
         btnLoadMore.addEventListener('click', () => {
             cardsMostradas += CARDS_POR_PAGINA;

@@ -2,7 +2,6 @@ const lugares = [
     // =========================================
     // CENTROS EMERGENCIA MUJER (CEM) — 64 registros
     // =========================================
-    
     { nombre: "CEM Lima", categoria: "casas-hogar", lat: -12.0500, lng: -77.0350, desc: "Jirón Camaná N° 616 - Atención 24 horas.", telefono: "994800533" },
     { nombre: "CEM La Molina", categoria: "casas-hogar", lat: -12.0900, lng: -76.9650, desc: "Calle Los Almendros Cdra. 5, Monterrico.", telefono: "984841161" },
     { nombre: "CEM Comas", categoria: "casas-hogar", lat: -11.9400, lng: -77.0500, desc: "Km 14.5 Túpac Amaru - Atención regular.", telefono: "994833686" },
@@ -71,7 +70,6 @@ const lugares = [
     // =========================================
     // COMISARÍAS DE LIMA METROPOLITANA — ~120 registros
     // =========================================
-    // --- LIMA CENTRO / CERCADO ---
     { nombre: "Comisaría PNP Alfonso Ugarte", categoria: "comisarias", lat: -12.0550, lng: -77.0450, desc: "Comisaría básica - Cercado de Lima.", telefono: "105" },
     { nombre: "Comisaría PNP Conde de la Vega", categoria: "comisarias", lat: -12.0500, lng: -77.0350, desc: "Comisaría básica - Cercado de Lima.", telefono: "105" },
     { nombre: "Comisaría PNP Cotabambas", categoria: "comisarias", lat: -12.0464, lng: -77.0428, desc: "Comisaría básica - Cercado de Lima.", telefono: "105" },
@@ -82,26 +80,18 @@ const lugares = [
     { nombre: "Comisaría PNP Unidad Vecinal 3", categoria: "comisarias", lat: -12.0520, lng: -77.0480, desc: "Comisaría básica - Cercado de Lima.", telefono: "105" },
     { nombre: "Comisaría PNP Unidad Vecinal Mirones Alta", categoria: "comisarias", lat: -12.0500, lng: -77.0300, desc: "Comisaría básica - Cercado de Lima.", telefono: "105" },
     { nombre: "Comisaría PNP Unidad Vecinal Mirones Baja", categoria: "comisarias", lat: -12.0520, lng: -77.0280, desc: "Comisaría básica - Cercado de Lima.", telefono: "105" },
-
-    // --- LA VICTORIA ---
     { nombre: "Comisaría PNP Apolo", categoria: "comisarias", lat: -12.0750, lng: -77.0200, desc: "Comisaría básica - La Victoria.", telefono: "105" },
     { nombre: "Comisaría PNP La Victoria", categoria: "comisarias", lat: -12.0700, lng: -77.0250, desc: "Comisaría básica - La Victoria.", telefono: "105" },
     { nombre: "Comisaría PNP San Cosme", categoria: "comisarias", lat: -12.0750, lng: -77.0300, desc: "Comisaría básica - La Victoria.", telefono: "105" },
-
-    // --- RÍMAC ---
     { nombre: "Comisaría PNP Ciudad y Campo", categoria: "comisarias", lat: -12.0300, lng: -77.0300, desc: "Comisaría básica - Rímac.", telefono: "105" },
     { nombre: "Comisaría PNP El Manzano", categoria: "comisarias", lat: -12.0250, lng: -77.0350, desc: "Comisaría básica - Rímac.", telefono: "105" },
     { nombre: "Comisaría PNP Flor de Amancaes", categoria: "comisarias", lat: -12.0300, lng: -77.0200, desc: "Comisaría básica - Rímac.", telefono: "105" },
     { nombre: "Comisaría PNP La Unificada", categoria: "comisarias", lat: -12.0250, lng: -77.0300, desc: "Comisaría básica - Rímac.", telefono: "105" },
     { nombre: "Comisaría PNP Piedra Liza", categoria: "comisarias", lat: -12.0300, lng: -77.0250, desc: "Comisaría básica - Rímac.", telefono: "105" },
     { nombre: "Comisaría PNP Rímac", categoria: "comisarias", lat: -12.0300, lng: -77.0300, desc: "Comisaría básica - Rímac.", telefono: "105" },
-
-    // --- BREÑA / LINCE / JESÚS MARÍA ---
     { nombre: "Comisaría PNP Breña", categoria: "comisarias", lat: -12.0600, lng: -77.0500, desc: "Comisaría básica - Breña.", telefono: "105" },
     { nombre: "Comisaría PNP Lince", categoria: "comisarias", lat: -12.0850, lng: -77.0350, desc: "Comisaría básica - Lince.", telefono: "105" },
     { nombre: "Comisaría PNP Jesús María", categoria: "comisarias", lat: -12.0700, lng: -77.0450, desc: "Comisaría básica - Jesús María.", telefono: "105" },
-
-    // --- MIRAFLORES / SAN ISIDRO / SURCO ---
     { nombre: "Comisaría PNP Miraflores", categoria: "comisarias", lat: -12.1215, lng: -77.0298, desc: "Comisaría básica - Miraflores.", telefono: "105" },
     { nombre: "Comisaría PNP San Antonio - Miraflores", categoria: "comisarias", lat: -12.1150, lng: -77.0250, desc: "Comisaría básica - Miraflores.", telefono: "105" },
     { nombre: "Comisaría PNP San Isidro", categoria: "comisarias", lat: -12.0970, lng: -77.0350, desc: "Comisaría básica - San Isidro.", telefono: "105" },
@@ -109,27 +99,19 @@ const lugares = [
     { nombre: "Comisaría PNP Monterrico", categoria: "comisarias", lat: -12.1050, lng: -76.9850, desc: "Comisaría básica - Santiago de Surco.", telefono: "105" },
     { nombre: "Comisaría PNP Sagitario", categoria: "comisarias", lat: -12.1400, lng: -76.9900, desc: "Comisaría básica - Santiago de Surco.", telefono: "105" },
     { nombre: "Comisaría PNP Surco", categoria: "comisarias", lat: -12.1450, lng: -76.9950, desc: "Comisaría básica - Santiago de Surco.", telefono: "105" },
-
-    // --- SAN BORJA / SAN LUIS / SURQUILLO ---
     { nombre: "Comisaría PNP San Borja", categoria: "comisarias", lat: -12.1070, lng: -77.0020, desc: "Comisaría básica - San Borja.", telefono: "105" },
     { nombre: "Comisaría PNP San Luis", categoria: "comisarias", lat: -12.0750, lng: -77.0000, desc: "Comisaría básica - San Luis.", telefono: "105" },
     { nombre: "Comisaría PNP Yerbateros", categoria: "comisarias", lat: -12.0800, lng: -77.0050, desc: "Comisaría básica - San Luis.", telefono: "105" },
     { nombre: "Comisaría PNP Surquillo", categoria: "comisarias", lat: -12.1150, lng: -77.0200, desc: "Comisaría básica - Surquillo.", telefono: "105" },
-
-    // --- SAN MIGUEL / PUEBLO LIBRE / MAGDALENA ---
     { nombre: "Comisaría PNP Maranga", categoria: "comisarias", lat: -12.0800, lng: -77.0800, desc: "Comisaría básica - San Miguel.", telefono: "105" },
     { nombre: "Comisaría PNP San Miguel", categoria: "comisarias", lat: -12.0770, lng: -77.0850, desc: "Comisaría básica - San Miguel.", telefono: "105" },
     { nombre: "Comisaría PNP Pueblo Libre", categoria: "comisarias", lat: -12.0700, lng: -77.0650, desc: "Comisaría básica - Pueblo Libre.", telefono: "105" },
     { nombre: "Comisaría PNP Magdalena", categoria: "comisarias", lat: -12.0900, lng: -77.0700, desc: "Comisaría básica - Magdalena del Mar.", telefono: "105" },
-
-    // --- BARRANCO / CHORRILLOS ---
     { nombre: "Comisaría PNP Barranco", categoria: "comisarias", lat: -12.1450, lng: -77.0200, desc: "Comisaría básica - Barranco.", telefono: "105" },
     { nombre: "Comisaría PNP Chorrillos", categoria: "comisarias", lat: -12.1750, lng: -77.0200, desc: "Comisaría básica - Chorrillos.", telefono: "105" },
     { nombre: "Comisaría PNP Mateo Pumacahua", categoria: "comisarias", lat: -12.1650, lng: -77.0150, desc: "Comisaría básica - Chorrillos.", telefono: "105" },
     { nombre: "Comisaría PNP San Genaro", categoria: "comisarias", lat: -12.1700, lng: -77.0100, desc: "Comisaría básica - Chorrillos.", telefono: "105" },
     { nombre: "Comisaría PNP Villa", categoria: "comisarias", lat: -12.1850, lng: -77.0150, desc: "Comisaría básica - Chorrillos.", telefono: "105" },
-
-    // --- LA MOLINA / CIENEGUILLA / PACHACÁMAC ---
     { nombre: "Comisaría PNP La Molina", categoria: "comisarias", lat: -12.0800, lng: -76.9500, desc: "Comisaría básica - La Molina.", telefono: "105" },
     { nombre: "Comisaría PNP Las Praderas", categoria: "comisarias", lat: -12.0750, lng: -76.9400, desc: "Comisaría básica - La Molina.", telefono: "105" },
     { nombre: "Comisaría PNP Santa Felicia", categoria: "comisarias", lat: -12.0850, lng: -76.9300, desc: "Comisaría básica - La Molina.", telefono: "105" },
@@ -137,8 +119,6 @@ const lugares = [
     { nombre: "Comisaría PNP Manchay", categoria: "comisarias", lat: -12.0850, lng: -76.8700, desc: "Comisaría básica - Pachacámac.", telefono: "105" },
     { nombre: "Comisaría PNP Pachacámac", categoria: "comisarias", lat: -12.1200, lng: -76.8700, desc: "Comisaría básica - Pachacámac.", telefono: "105" },
     { nombre: "Comisaría PNP Urbanización Pachacámac", categoria: "comisarias", lat: -12.2100, lng: -76.9200, desc: "Comisaría básica - Villa El Salvador.", telefono: "105" },
-
-    // --- SAN JUAN DE MIRAFLORES / VILLA EL SALVADOR / VMT ---
     { nombre: "Comisaría PNP Laderas de Villa", categoria: "comisarias", lat: -12.1700, lng: -76.9700, desc: "Comisaría básica - San Juan de Miraflores.", telefono: "105" },
     { nombre: "Comisaría PNP Pamplona I", categoria: "comisarias", lat: -12.1550, lng: -76.9850, desc: "Comisaría básica - San Juan de Miraflores.", telefono: "105" },
     { nombre: "Comisaría PNP Pamplona II", categoria: "comisarias", lat: -12.1550, lng: -76.9800, desc: "Comisaría básica - San Juan de Miraflores.", telefono: "105" },
@@ -151,8 +131,6 @@ const lugares = [
     { nombre: "Comisaría PNP San Francisco Tablada de L", categoria: "comisarias", lat: -12.1650, lng: -76.9550, desc: "Comisaría básica - Villa María del Triunfo.", telefono: "105" },
     { nombre: "Comisaría PNP Villa Alejandro", categoria: "comisarias", lat: -12.2800, lng: -76.8650, desc: "Comisaría básica - Villa María del Triunfo.", telefono: "105" },
     { nombre: "Comisaría PNP Villa María del Triunfo", categoria: "comisarias", lat: -12.1750, lng: -76.9400, desc: "Comisaría básica - Villa María del Triunfo.", telefono: "105" },
-
-    // --- SAN JUAN DE LURIGANCHO ---
     { nombre: "Comisaría PNP 10 de Octubre", categoria: "comisarias", lat: -11.9850, lng: -76.9950, desc: "Comisaría básica - San Juan de Lurigancho.", telefono: "105" },
     { nombre: "Comisaría PNP Bayóvar", categoria: "comisarias", lat: -11.9500, lng: -76.9800, desc: "Comisaría básica - San Juan de Lurigancho.", telefono: "105" },
     { nombre: "Comisaría PNP Caja de Agua", categoria: "comisarias", lat: -12.0000, lng: -77.0050, desc: "Comisaría básica - San Juan de Lurigancho.", telefono: "105" },
@@ -161,8 +139,6 @@ const lugares = [
     { nombre: "Comisaría PNP Mariscal Cáceres", categoria: "comisarias", lat: -11.9950, lng: -76.9850, desc: "Comisaría básica - San Juan de Lurigancho.", telefono: "105" },
     { nombre: "Comisaría PNP Santa Elizabeth", categoria: "comisarias", lat: -11.9800, lng: -76.9700, desc: "Comisaría básica - San Juan de Lurigancho.", telefono: "105" },
     { nombre: "Comisaría PNP Zárate", categoria: "comisarias", lat: -12.0100, lng: -76.9850, desc: "Comisaría básica - San Juan de Lurigancho.", telefono: "105" },
-
-    // --- EL AGUSTINO / SANTA ANITA / ATE ---
     { nombre: "Comisaría PNP El Agustino", categoria: "comisarias", lat: -12.0400, lng: -77.0000, desc: "Comisaría básica - El Agustino.", telefono: "105" },
     { nombre: "Comisaría PNP San Pedro", categoria: "comisarias", lat: -12.0350, lng: -77.0050, desc: "Comisaría básica - El Agustino.", telefono: "105" },
     { nombre: "Comisaría PNP Santoyo", categoria: "comisarias", lat: -12.0450, lng: -76.9950, desc: "Comisaría básica - El Agustino.", telefono: "105" },
@@ -172,15 +148,11 @@ const lugares = [
     { nombre: "Comisaría PNP Salamanca", categoria: "comisarias", lat: -12.0300, lng: -76.9600, desc: "Comisaría básica - Ate.", telefono: "105" },
     { nombre: "Comisaría PNP Santa Clara", categoria: "comisarias", lat: -12.0200, lng: -76.9100, desc: "Comisaría básica - Ate.", telefono: "105" },
     { nombre: "Comisaría PNP Vitarte", categoria: "comisarias", lat: -12.0300, lng: -76.9200, desc: "Comisaría básica - Ate.", telefono: "105" },
-
-    // --- LURIGANCHO / CHOSICA / CHACLACAYO ---
     { nombre: "Comisaría PNP Chaclacayo", categoria: "comisarias", lat: -11.9750, lng: -76.7700, desc: "Comisaría básica - Chaclacayo.", telefono: "105" },
     { nombre: "Comisaría PNP Chosica", categoria: "comisarias", lat: -11.9400, lng: -76.7000, desc: "Comisaría básica - Lurigancho.", telefono: "105" },
     { nombre: "Comisaría PNP Huachipa", categoria: "comisarias", lat: -12.0000, lng: -76.9000, desc: "Comisaría básica - Lurigancho.", telefono: "105" },
     { nombre: "Comisaría PNP Jicamarca", categoria: "comisarias", lat: -11.9500, lng: -76.9000, desc: "Comisaría básica - Lurigancho.", telefono: "105" },
     { nombre: "Comisaría PNP San Antonio de Jicamarca", categoria: "comisarias", lat: -11.9400, lng: -76.9100, desc: "Comisaría básica - Lurigancho.", telefono: "105" },
-
-    // --- INDEPENDENCIA / COMAS / LOS OLIVOS / SMP ---
     { nombre: "Comisaría PNP Independencia", categoria: "comisarias", lat: -11.9900, lng: -77.0500, desc: "Comisaría básica - Independencia.", telefono: "105" },
     { nombre: "Comisaría PNP Payet", categoria: "comisarias", lat: -11.9850, lng: -77.0550, desc: "Comisaría básica - Independencia.", telefono: "105" },
     { nombre: "Comisaría PNP Tahuantinsuyo", categoria: "comisarias", lat: -11.9800, lng: -77.0500, desc: "Comisaría básica - Independencia.", telefono: "105" },
@@ -195,8 +167,6 @@ const lugares = [
     { nombre: "Comisaría PNP Barboncitos", categoria: "comisarias", lat: -12.0200, lng: -77.0750, desc: "Comisaría básica - San Martín de Porres.", telefono: "105" },
     { nombre: "Comisaría PNP Condevilla", categoria: "comisarias", lat: -12.0300, lng: -77.0850, desc: "Comisaría básica - San Martín de Porres.", telefono: "105" },
     { nombre: "Comisaría PNP San Martín de Porres", categoria: "comisarias", lat: -12.0250, lng: -77.0800, desc: "Comisaría básica - San Martín de Porres.", telefono: "105" },
-
-    // --- CARABAYLLO / PUENTE PIEDRA / ANCÓN / SANTA ROSA ---
     { nombre: "Comisaría PNP Carabayllo", categoria: "comisarias", lat: -11.8900, lng: -77.0350, desc: "Comisaría básica - Carabayllo.", telefono: "105" },
     { nombre: "Comisaría PNP El Progreso", categoria: "comisarias", lat: -11.8800, lng: -77.0400, desc: "Comisaría básica - Carabayllo.", telefono: "105" },
     { nombre: "Comisaría PNP Santa Isabel", categoria: "comisarias", lat: -11.9000, lng: -77.0300, desc: "Comisaría básica - Carabayllo.", telefono: "105" },
@@ -205,18 +175,12 @@ const lugares = [
     { nombre: "Comisaría PNP Zapallal", categoria: "comisarias", lat: -11.8800, lng: -77.0800, desc: "Comisaría básica - Puente Piedra.", telefono: "105" },
     { nombre: "Comisaría PNP Ancón", categoria: "comisarias", lat: -11.7700, lng: -77.1700, desc: "Comisaría básica - Ancón.", telefono: "105" },
     { nombre: "Comisaría PNP Santa Rosa", categoria: "comisarias", lat: -11.8000, lng: -77.1500, desc: "Comisaría básica - Santa Rosa.", telefono: "105" },
-
-    // --- LURÍN / PUNTA HERMOSA / SAN BARTOLO ---
     { nombre: "Comisaría PNP Lurín", categoria: "comisarias", lat: -12.2750, lng: -76.8700, desc: "Comisaría básica - Lurín.", telefono: "105" },
     { nombre: "Comisaría PNP Punta Hermosa", categoria: "comisarias", lat: -12.3300, lng: -76.8200, desc: "Comisaría básica - Punta Hermosa.", telefono: "105" },
     { nombre: "Comisaría PNP Punta Negra", categoria: "comisarias", lat: -12.3650, lng: -76.8000, desc: "Comisaría básica - Punta Negra.", telefono: "105" },
     { nombre: "Comisaría PNP San Bartolo", categoria: "comisarias", lat: -12.3850, lng: -76.7800, desc: "Comisaría básica - San Bartolo.", telefono: "105" },
     { nombre: "Comisaría PNP Santa María del Mar", categoria: "comisarias", lat: -12.4050, lng: -76.7700, desc: "Comisaría básica - Santa María del Mar.", telefono: "105" },
     { nombre: "Comisaría PNP Pucusana", categoria: "comisarias", lat: -12.4800, lng: -76.7900, desc: "Comisaría básica - Pucusana.", telefono: "105" },
-
-    // =========================================
-    // CALLAO (agregadas manualmente — no venían en el PDF)
-    // =========================================
     { nombre: "Comisaría PNP Callao", categoria: "comisarias", lat: -12.0565, lng: -77.1182, desc: "Comisaría básica - Callao.", telefono: "105" },
     { nombre: "Comisaría PNP Bellavista", categoria: "comisarias", lat: -12.0620, lng: -77.1150, desc: "Comisaría básica - Bellavista, Callao.", telefono: "105" },
     { nombre: "Comisaría PNP Carmen de la Legua", categoria: "comisarias", lat: -12.0550, lng: -77.1000, desc: "Comisaría básica - Carmen de la Legua, Callao.", telefono: "105" },
@@ -230,8 +194,14 @@ const lugares = [
     // =========================================
     { nombre: "Línea 100 — MIMP", categoria: "lineas-ayuda", desc: "Orientación gratuita en casos de violencia hacia la mujer.", telefono: "100" },
     { nombre: "Línea 1811 — Chat 100", categoria: "lineas-ayuda", desc: "Orientación psicológica y legal gratuita vía chat.", telefono: "1811" },
-    { nombre: "Línea 105 — PNP", categoria: "lineas-ayuda", desc: "Emergencias policiales a nivel nacional.", telefono: "105" }
+    { nombre: "Línea 105 — PNP", categoria: "lineas-ayuda", desc: "Emergencias policiales a nivel nacional.", telefono: "105" },
 
-
-    
+    // =========================================
+    // OTROS RECURSOS
+    // =========================================
+    { nombre: "Defensoría del Pueblo", categoria: "otros", lat: -12.0560, lng: -77.0360, desc: "Atención de quejas por derechos vulnerados. Jr. Ucayali 388, Lima.", telefono: "080015170" },
+    { nombre: "Fiscalía de Familia", categoria: "otros", lat: -12.0700, lng: -77.0400, desc: "Denuncias penales por violencia familiar.", telefono: "016255555" },
+    { nombre: "UDAVIT — Ministerio Público", categoria: "otros", desc: "Atención a víctimas de trata de personas.", telefono: "1818" },
+    { nombre: "Centros de Salud Mental Comunitaria", categoria: "otros", desc: "Apoyo psicológico gratuito del MINSA.", telefono: "113" },
+    { nombre: "Hospitales de Emergencia", categoria: "otros", desc: "Atención médica 24h (Loayza, Rebagliati, etc.).", telefono: "106" }
 ];
