@@ -9,14 +9,55 @@ document.addEventListener('DOMContentLoaded', () => {
     // 0. CONFIGURACIÓN
     // =========================================
     // ⚠️ IMPORTANTE: usa /webhook/ (PRODUCCIÓN), no /webhook-test/.
-    // La URL de test solo funciona mientras n8n está escuchando en el editor.
     const AMPARA_CHAT_WEBHOOK_URL = 'https://ncol021.app.n8n.cloud/webhook/ampara-chat';
 
-    // Identificador de sesión simple para que n8n pueda diferenciar conversaciones
     const amparaSessionId = 'sess_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-    // Historial en memoria para enviar contexto al webhook (para que el bot recuerde el hilo)
+    // Historial en memoria para enviar contexto al webhook
     const amparaHistory = [];
+
+    // =========================================
+    // Helper: limpiar texto de la IA antes de mostrarlo
+    // =========================================
+    // - Convierte \n literales (backslash + n) y saltos reales en espacios
+    // - Convierte **texto** en <strong>texto</strong>
+    // - Escapa HTML para evitar inyecciones
+    function cleanAIText(rawText) {
+        let text = String(rawText || '');
+
+        // 1) Convertir \n literales y saltos reales en espacios (evita el bug del "\n\n")
+        text = text.replace(/\\n/g, ' ').replace(/\r\n|\r|\n/g, ' ');
+
+        // 2) Colapsar espacios múltiples que puedan quedar
+        text = text.replace(/[ \t]{2,}/g, ' ').trim();
+
+        // 3) Escapar caracteres HTML para seguridad
+        text = text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+
+        // 4) Convertir **negritas** en <strong>negritas</strong>
+        text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+        // 5) Convertir *cursiva* suelta en <em>cursiva</em> (opcional)
+        //    Ojo: se hace después de las negritas para no chocar
+        text = text.replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
+
+        // 6) Quitar residuos de almohadillas tipo "## Título" al inicio de frase
+        text = text.replace(/(^|\s)#{1,6}\s+/g, '$1');
+
+        return text;
+    }
+
+    // Limpia el texto ANTES de guardarlo en el historial (para no reenviar \n al webhook)
+    function cleanForHistory(rawText) {
+        let text = String(rawText || '');
+        text = text.replace(/\\n/g, ' ').replace(/\r\n|\r|\n/g, ' ');
+        text = text.replace(/\*\*/g, '').replace(/\*/g, '');
+        text = text.replace(/[ \t]{2,}/g, ' ').trim();
+        return text.slice(0, 500);
+    }
 
     // =========================================
     // 1. SALIDA RÁPIDA
@@ -170,9 +211,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const timeStr = now.getHours().toString().padStart(2, '0') + ':' +
                         now.getMinutes().toString().padStart(2, '0');
 
-        // Usamos textContent para el texto + span aparte para evitar inyección HTML
         const textNode = document.createElement('span');
-        textNode.textContent = text + ' ';
+
+        if (sender === 'ai') {
+            // Limpiamos el texto de la IA: quita \n literales y convierte **negritas**
+            textNode.innerHTML = cleanAIText(text) + ' ';
+        } else {
+            // Para mensajes del usuario usamos textContent (más seguro, sin HTML)
+            textNode.textContent = text + ' ';
+        }
+
         msgDiv.appendChild(textNode);
 
         const timeSpan = document.createElement('span');
@@ -212,8 +260,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // =========================================
     // Fallback LOCAL: solo se usa si el webhook falla.
-    // Diseñado para NO ser repetitivo: clasifica por tipo de situación y
-    // responde con consejo situacional + una herramienta concreta.
     // =========================================
     function localFallbackResponse(userMessage) {
         const lower = userMessage.toLowerCase();
@@ -236,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (digitalHarrassment.test(lower)) {
             return {
-                reply: 'Qué angustia eso, y qué bueno que me lo cuentes. Primero: no le respondas nada y no borres los mensajes, porque son tu prueba. Toma capturas de todo (perfil, conversación, número) y guárdalas en la sección Analizar evidencia, que las deja fuera de tu celular por si él tiene acceso. Después bloquealo y repórtalo en la plataforma. Si quieres, seguimos hablando, no estás sola en esto.',
+                reply: 'Gracias por contármelo, no estás sola. Primero: no le respondas nada y no borres los mensajes, porque son tu prueba. Toma capturas de todo (perfil, conversación, número) y guárdalas en la sección Analizar evidencia, que las deja fuera de tu celular por si él tiene acceso. Después bloquealo y repórtalo en la plataforma. Si quieres, seguimos hablando.',
                 risk_level: 'medio',
                 suggested_actions: ['evidencias'],
                 escalate: false
@@ -252,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (acosoCallejero.test(lower)) {
             return {
-                reply: 'Qué feo eso, y qué bueno que me lo cuentes. Si puedes, camina hacia un lugar con más gente (una tienda, un banco, una farmacia) y quédate ahí un momento. Si tienes a alguien de confianza cerca, llámalo y cuéntale dónde estás. Si sientes que te siguen de verdad, activa la alerta con el botón rojo de arriba para que tu contacto de emergencia reciba tu ubicación. ¿Dónde estás ahora?',
+                reply: 'Comprendo, y es normal sentirte así. Si puedes, camina hacia un lugar con más gente (una tienda, un banco, una farmacia) y quédate ahí un momento. Si tienes a alguien de confianza cerca, llámalo y cuéntale dónde estás. Si sientes que te siguen de verdad, activa la alerta con el botón rojo de arriba para que tu contacto de emergencia reciba tu ubicación. ¿Dónde estás ahora?',
                 risk_level: 'medio',
                 suggested_actions: ['alerta', 'refugios'],
                 escalate: false
@@ -260,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (incomodidad.test(lower)) {
             return {
-                reply: 'Uy, qué incómodo eso. Y es totalmente normal sentir miedo, no estás exagerando. Respira un segundo, estoy contigo. ¿Hay algún lugar con más gente o recepción donde puedas estar mientras decides? Si quieres, activamos la Alerta de Ampara para que tu contacto de emergencia venga por ti con tu ubicación. ¿Lo hacemos?',
+                reply: 'Comprendo, no estás sola. ¿Hay algún lugar con más gente o recepción donde puedas estar mientras decides? Si quieres, activamos la Alerta de Ampara para que tu contacto de emergencia venga por ti con tu ubicación. ¿Lo hacemos?',
                 risk_level: 'medio',
                 suggested_actions: ['alerta'],
                 escalate: false
@@ -309,16 +355,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({
                         message: userMessage,
                         sessionId: amparaSessionId,
-                        history: amparaHistory.slice(-8) // últimos 8 turnos
+                        history: amparaHistory.slice(-8)
                     })
                 });
                 if (!res.ok) throw new Error('Respuesta no OK del webhook: ' + res.status);
                 const data = await res.json();
                 if (!data || !data.reply) throw new Error('Respuesta del webhook sin campo "reply"');
 
-                // Guardar turno en el historial local para el siguiente mensaje
-                amparaHistory.push({ role: 'user', content: userMessage });
-                amparaHistory.push({ role: 'assistant', content: data.reply });
+                // Guardar turno LIMPIO en el historial local (sin \n ni markdown)
+                amparaHistory.push({ role: 'user', content: cleanForHistory(userMessage) });
+                amparaHistory.push({ role: 'assistant', content: cleanForHistory(data.reply) });
 
                 return {
                     reply: data.reply,
