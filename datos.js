@@ -189,12 +189,7 @@ const lugares = [
     { nombre: "Comisaría PNP Mi Perú", categoria: "comisarias", lat: -11.8500, lng: -77.1000, desc: "Comisaría básica - Mi Perú, Callao.", telefono: "105" },
     { nombre: "Comisaría PNP Ventanilla", categoria: "comisarias", lat: -11.8700, lng: -77.1400, desc: "Comisaría básica - Ventanilla, Callao.", telefono: "105" },
 
-    // =========================================
-    // LÍNEAS DE AYUDA (sin coordenadas)
-    // =========================================
-    { nombre: "Línea 100 — MIMP", categoria: "lineas-ayuda", desc: "Orientación gratuita en casos de violencia hacia la mujer.", telefono: "100" },
-    { nombre: "Línea 1811 — Chat 100", categoria: "lineas-ayuda", desc: "Orientación psicológica y legal gratuita vía chat.", telefono: "1811" },
-    { nombre: "Línea 105 — PNP", categoria: "lineas-ayuda", desc: "Emergencias policiales a nivel nacional.", telefono: "105" },
+    
 
     // =========================================
     // OTROS RECURSOS

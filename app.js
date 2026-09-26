@@ -123,6 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setAuthMode(!isRegisterMode);
         });
     }
+    
     if (authForm) {
         authForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -134,11 +135,247 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const action = isRegisterMode ? 'Registro' : 'Inicio de sesión';
             console.log(`%c✅ ${action} exitoso para: ${email}`, 'color: #22C55E; font-weight: bold;');
+            
+            // 💾 Guardar usuario logueado
+            localStorage.setItem('ampara_user', email);
+            actualizarUIUsuario(email);
+            
             closeAuthModal();
             authForm.reset();
             alert(`¡${action} exitoso! Bienvenida, ${email}`);
+            
+            // Refrescar el panel de ubicaciones seguras si está visible
+            if (categoriaActiva === 'seguras') {
+                renderSafeLocationsPanel();
+            }
         });
     }
+
+    // =========================================
+    // 4.1. ESTADO DE USUARIO Y UBICACIONES SEGURAS
+    // =========================================
+    let currentUser = localStorage.getItem('ampara_user') || null;
+
+    // Actualizar UI cuando se loguea/desloguea
+    function actualizarUIUsuario(email) {
+        currentUser = email;
+        const btnAuth = document.getElementById('btn-auth');
+        if (btnAuth && email) {
+            btnAuth.innerHTML = `<i class="fas fa-user-circle"></i> <span>${email.split('@')[0]}</span>`;
+            btnAuth.title = `Cerrar sesión de ${email}`;
+            btnAuth.onclick = (e) => {
+                e.preventDefault();
+                if (confirm(`¿Cerrar sesión de ${email}?`)) {
+                    localStorage.removeItem('ampara_user');
+                    currentUser = null;
+                    btnAuth.innerHTML = `<i class="fas fa-user-circle"></i> <span>Iniciar sesión</span>`;
+                    btnAuth.title = '';
+                    btnAuth.onclick = openAuthModal;
+                    if (categoriaActiva === 'seguras') renderSafeLocationsPanel();
+                }
+            };
+        }
+    }
+
+    // Inicializar UI al cargar (si ya había sesión guardada)
+    if (currentUser) actualizarUIUsuario(currentUser);
+
+    // Obtener ubicaciones seguras del usuario actual
+    function getSafeLocations() {
+        if (!currentUser) return [];
+        const key = `ampara_safe_locations_${currentUser}`;
+        try {
+            return JSON.parse(localStorage.getItem(key)) || [];
+        } catch {
+            return [];
+        }
+    }
+
+    // Guardar ubicaciones seguras
+    function saveSafeLocations(locations) {
+        if (!currentUser) return;
+        const key = `ampara_safe_locations_${currentUser}`;
+        localStorage.setItem(key, JSON.stringify(locations));
+    }
+
+    // Geocodificar dirección usando Nominatim (OpenStreetMap, gratis)
+    async function geocodeAddress(address) {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address + ', Perú')}`;
+        const res = await fetch(url, {
+            headers: { 'Accept': 'application/json' }
+        });
+        if (!res.ok) throw new Error('Error al buscar dirección');
+        const data = await res.json();
+        if (!data || data.length === 0) throw new Error('Dirección no encontrada');
+        return {
+            lat: parseFloat(data[0].lat),
+            lng: parseFloat(data[0].lon),
+            displayName: data[0].display_name
+        };
+    }
+
+    // Renderizar panel de ubicaciones seguras
+    function renderSafeLocationsPanel() {
+        const panel = document.getElementById('safe-locations-panel');
+        const prompt = document.getElementById('safe-locations-login-prompt');
+        const content = document.getElementById('safe-locations-content');
+        if (!panel || !prompt || !content) return;
+
+        panel.hidden = false;
+
+        if (!currentUser) {
+            prompt.hidden = false;
+            content.hidden = true;
+            return;
+        }
+
+        prompt.hidden = true;
+        content.hidden = false;
+        renderSafeLocationsList();
+        renderSafeLocationsOnMap();
+    }
+
+    // Renderizar lista de ubicaciones guardadas
+    function renderSafeLocationsList() {
+        const list = document.getElementById('safe-locations-list');
+        if (!list) return;
+
+        const locations = getSafeLocations();
+        if (locations.length === 0) {
+            list.innerHTML = `<p style="text-align:center; color:var(--text-secondary); font-size:14px; padding:20px;">
+                Aún no tienes ubicaciones guardadas. ¡Agrega la primera arriba! 💜
+            </p>`;
+            return;
+        }
+
+        list.innerHTML = '';
+        locations.forEach((loc, index) => {
+            const item = document.createElement('div');
+            item.className = 'safe-location-item';
+            item.innerHTML = `
+                <i class="fas fa-house-chimney-heart"></i>
+                <div class="safe-info">
+                    <strong>${loc.name}</strong>
+                    <span>${loc.address}</span>
+                </div>
+                <div class="safe-actions">
+                    <button class="btn-go" data-index="${index}" title="Cómo llegar">
+                        <i class="fas fa-compass"></i>
+                    </button>
+                    <button class="btn-delete" data-index="${index}" title="Eliminar">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            list.appendChild(item);
+        });
+
+        // Botón "Cómo llegar" → Google Maps
+        list.querySelectorAll('.btn-go').forEach(btn => {
+            btn.onclick = () => {
+                const loc = getSafeLocations()[parseInt(btn.dataset.index)];
+                if (!loc) return;
+                const userLoc = userMarker ? userMarker.getLatLng() : null;
+                const origin = userLoc ? `${userLoc.lat},${userLoc.lng}` : '';
+                const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${loc.lat},${loc.lng}`;
+                window.open(url, '_blank');
+            };
+        });
+
+        // Botón "Eliminar"
+        list.querySelectorAll('.btn-delete').forEach(btn => {
+            btn.onclick = () => {
+                const index = parseInt(btn.dataset.index);
+                const locations = getSafeLocations();
+                if (confirm(`¿Eliminar "${locations[index].name}"?`)) {
+                    locations.splice(index, 1);
+                    saveSafeLocations(locations);
+                    renderSafeLocationsList();
+                    renderSafeLocationsOnMap();
+                }
+            };
+        });
+    }
+
+    // Renderizar marcadores dorados en el mapa
+    let safeMarkers = [];
+    function renderSafeLocationsOnMap() {
+        if (!map) return;
+        // Limpiar marcadores anteriores
+        safeMarkers.forEach(m => map.removeLayer(m));
+        safeMarkers = [];
+
+        const locations = getSafeLocations();
+        locations.forEach(loc => {
+            const icon = L.divIcon({
+                className: '',
+                html: '<div class="safe-marker-icon"></div>',
+                iconSize: [24, 24],
+                iconAnchor: [12, 24]
+            });
+            const marker = L.marker([loc.lat, loc.lng], { icon })
+                .addTo(map)
+                .bindPopup(`<b>🛡️ ${loc.name}</b><br><small>${loc.address}</small>`);
+            safeMarkers.push(marker);
+        });
+    }
+
+    // Formulario para agregar ubicación segura
+    const safeForm = document.getElementById('safe-location-form');
+    if (safeForm) {
+        safeForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nameInput = document.getElementById('safe-name');
+            const addressInput = document.getElementById('safe-address');
+            const status = document.getElementById('safe-form-status');
+            const name = nameInput.value.trim();
+            const address = addressInput.value.trim();
+
+            if (!name || !address) return;
+            if (!currentUser) {
+                status.textContent = '❌ Debes iniciar sesión primero';
+                status.className = 'form-hint error';
+                return;
+            }
+
+            status.textContent = '🔍 Buscando dirección...';
+            status.className = 'form-hint';
+
+            try {
+                const geo = await geocodeAddress(address);
+                const locations = getSafeLocations();
+                locations.push({
+                    name,
+                    address: geo.displayName || address,
+                    lat: geo.lat,
+                    lng: geo.lng,
+                    createdAt: Date.now()
+                });
+                saveSafeLocations(locations);
+
+                status.textContent = '✅ Ubicación guardada';
+                status.className = 'form-hint success';
+
+                nameInput.value = '';
+                addressInput.value = '';
+
+                renderSafeLocationsList();
+                renderSafeLocationsOnMap();
+
+                setTimeout(() => { status.textContent = ''; }, 2500);
+            } catch (err) {
+                status.textContent = `❌ ${err.message}. Intenta con más detalle (distrito incluido).`;
+                status.className = 'form-hint error';
+            }
+        });
+    }
+
+    // Botón "Iniciar sesión" del panel de ubicaciones seguras
+    const btnLoginFromSafe = document.getElementById('btn-login-from-safe');
+    if (btnLoginFromSafe) {
+        btnLoginFromSafe.addEventListener('click', openAuthModal);
+    }
+
 
     // =========================================
     // 5. CHAT — EMPÁTICO CON N8N
@@ -541,25 +778,58 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
         // =========================================
-    // 9. FILTROS CON BÚSQUEDA Y "CARGAR MÁS"
+    // 9. FILTROS, BÚSQUEDA, BANNER Y UBICACIONES SEGURAS
     // =========================================
     const chips = document.querySelectorAll('.chip');
     const btnLoadMore = document.getElementById('btn-load-more');
     const searchInput = document.getElementById('search-input');
+    const infoBanner = document.getElementById('category-info-banner');
+    const infoText = document.getElementById('category-info-text');
+    const safePanel = document.getElementById('safe-locations-panel');
     const CARDS_POR_PAGINA = 5;
     let cardsMostradas = CARDS_POR_PAGINA;
     let categoriaActiva = 'casas-hogar';
     let terminoBusqueda = '';
 
+    // Textos del banner informativo por categoría
+    const CATEGORY_INFO = {
+        'casas-hogar': '<strong>Centros de Emergencia Mujer (CEM):</strong> servicios gratuitos del MIMP que brindan atención legal, psicológica y social a mujeres víctimas de violencia. Hay más de 60 en Lima Metropolitana.',
+        'comisarias': '<strong>Comisarías PNP:</strong> puedes denunciar violencia familiar en cualquier comisaría del país. Si estás en peligro, llama al 105 o al 100. Estas son las más cercanas a ti.',
+        'otros': '<strong>Otros recursos:</strong> Defensoría del Pueblo, Fiscalía de Familia, UDAVIT, hospitales y líneas de apoyo adicionales que complementan la protección.',
+        'seguras': '<strong>Ubicaciones seguras:</strong> guarda casas de familiares, amistades o lugares de confianza. Solo tú las verás, y aparecerán en el mapa para llegar rápido cuando lo necesites.'
+    };
+
     function aplicarFiltroYPaginacion() {
         const todasLasCards = Array.from(document.querySelectorAll('.place-card'));
-        
-        // Filtrar por categoría activa
+
+        // Actualizar banner informativo
+        if (infoText && CATEGORY_INFO[categoriaActiva]) {
+            infoText.innerHTML = CATEGORY_INFO[categoriaActiva];
+            if (infoBanner) infoBanner.hidden = false;
+        } else if (infoBanner) {
+            infoBanner.hidden = true;
+        }
+
+        // Mostrar/ocultar panel de ubicaciones seguras
+        if (safePanel) {
+            safePanel.hidden = (categoriaActiva !== 'seguras');
+        }
+
+        // Si es "seguras", renderizar el panel y salir (no hay cards)
+        if (categoriaActiva === 'seguras') {
+            renderSafeLocationsPanel();
+            todasLasCards.forEach(card => card.style.display = 'none');
+            if (btnLoadMore) btnLoadMore.style.display = 'none';
+            if (map) map.invalidateSize();
+            return;
+        }
+
+        // Filtrar por categoría
         let cardsFiltradas = todasLasCards.filter(card =>
             card.getAttribute('data-category') === categoriaActiva
         );
 
-        // Filtrar adicionalmente por el término de búsqueda
+        // Filtrar por término de búsqueda
         if (terminoBusqueda.trim() !== '') {
             const termino = terminoBusqueda.toLowerCase().trim();
             cardsFiltradas = cardsFiltradas.filter(card => {
@@ -569,30 +839,27 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Ocultar TODAS las cards primero
         todasLasCards.forEach(card => card.style.display = 'none');
-
-        // Mostrar las primeras N de las filtradas
         cardsFiltradas.slice(0, cardsMostradas).forEach(card => {
             card.style.display = 'flex';
         });
 
-        // Mostrar mensaje si no hay resultados
-        let mensajeNoResultados = document.getElementById('no-results-msg');
+        // Mensaje sin resultados
+        let noResults = document.getElementById('no-results-msg');
         if (cardsFiltradas.length === 0) {
-            if (!mensajeNoResultados) {
-                mensajeNoResultados = document.createElement('p');
-                mensajeNoResultados.id = 'no-results-msg';
-                mensajeNoResultados.style.cssText = 'grid-column: 1 / -1; text-align: center; color: var(--text-secondary); font-size: 14px; padding: 20px;';
-                document.getElementById('places-list').after(mensajeNoResultados);
+            if (!noResults) {
+                noResults = document.createElement('p');
+                noResults.id = 'no-results-msg';
+                noResults.style.cssText = 'grid-column: 1 / -1; text-align: center; color: var(--text-secondary); font-size: 14px; padding: 20px;';
+                document.getElementById('places-list').after(noResults);
             }
-            mensajeNoResultados.textContent = '🔍 No se encontraron resultados. Intenta con otro distrito o cambia la categoría.';
-            mensajeNoResultados.hidden = false;
-        } else if (mensajeNoResultados) {
-            mensajeNoResultados.hidden = true;
+            noResults.textContent = '🔍 No se encontraron resultados. Intenta con otro distrito o cambia la categoría.';
+            noResults.hidden = false;
+        } else if (noResults) {
+            noResults.hidden = true;
         }
 
-        // Mostrar u ocultar el botón "Cargar más"
+        // Botón cargar más
         if (btnLoadMore) {
             if (cardsFiltradas.length > cardsMostradas) {
                 btnLoadMore.style.display = 'inline-flex';
@@ -606,7 +873,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (map) map.invalidateSize();
     }
 
-    // Click en cada chip (categorías)
+    // Click en cada chip
     chips.forEach(chip => {
         chip.addEventListener('click', () => {
             chips.forEach(c => c.classList.remove('active'));
@@ -617,18 +884,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Escribir en la barra de búsqueda
+    // Búsqueda con debounce
+    let searchTimeout;
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
-            terminoBusqueda = e.target.value;
-            cardsMostradas = CARDS_POR_PAGINA; // Resetear paginación al buscar
-            aplicarFiltroYPaginacion();
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                terminoBusqueda = e.target.value;
+                cardsMostradas = CARDS_POR_PAGINA;
+                aplicarFiltroYPaginacion();
+            }, 250);
         });
-
-        // También permitir Enter para buscar
         searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
+                clearTimeout(searchTimeout);
                 terminoBusqueda = e.target.value;
                 cardsMostradas = CARDS_POR_PAGINA;
                 aplicarFiltroYPaginacion();
@@ -636,7 +906,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Click en "Cargar más"
+    // Cargar más
     if (btnLoadMore) {
         btnLoadMore.addEventListener('click', () => {
             cardsMostradas += CARDS_POR_PAGINA;

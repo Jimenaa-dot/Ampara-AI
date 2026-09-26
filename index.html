@@ -227,10 +227,10 @@
             </div>
         </section>
 
-                <!-- =========================================
+            <!-- =========================================
              REFUGIOS CERCANOS
              ========================================= -->
-        <section id="refugios" class="section-block">
+                <section id="refugios" class="section-block">
             <div class="section-inner">
                 <p class="eyebrow">Refugios y ayuda cerca</p>
                 <h2>Encuentra ayuda cerca de ti</h2>
@@ -241,14 +241,52 @@
                 </div>
 
                 <div class="filter-chips" role="tablist">
-                    <button class="chip active" role="tab" data-filter="casas-hogar">Casas hogar</button>
-                    <button class="chip" role="tab" data-filter="lineas-ayuda">Líneas de ayuda</button>
+                    <button class="chip active" role="tab" data-filter="casas-hogar">CEM</button>
                     <button class="chip" role="tab" data-filter="comisarias">Comisarías</button>
                     <button class="chip" role="tab" data-filter="otros">Otros recursos</button>
+                    <button class="chip" role="tab" data-filter="seguras">
+                        <i class="fas fa-shield-heart"></i> Ubicaciones seguras
+                    </button>
+                </div>
+
+                <!-- Banner informativo dinámico según la categoría activa -->
+                <div class="category-info-banner" id="category-info-banner">
+                    <i class="fas fa-circle-info" aria-hidden="true"></i>
+                    <p id="category-info-text"></p>
+                </div>
+
+                <!-- Panel especial para "Ubicaciones seguras" (visible solo con ese chip) -->
+                <div class="safe-locations-panel" id="safe-locations-panel" hidden>
+                    <!-- Estado NO logueado -->
+                    <div class="safe-locations-login-prompt" id="safe-locations-login-prompt">
+                        <i class="fas fa-lock" aria-hidden="true"></i>
+                        <h3>Inicia sesión para guardar tus ubicaciones seguras</h3>
+                        <p>Guarda casas de familiares, amistades o lugares de confianza para llegar rápido a ellos cuando lo necesites.</p>
+                        <button class="btn btn-primary" id="btn-login-from-safe">
+                            <i class="fas fa-user-circle"></i> Iniciar sesión
+                        </button>
+                    </div>
+
+                    <!-- Estado logueado: formulario + lista -->
+                    <div class="safe-locations-content" id="safe-locations-content" hidden>
+                        <form class="safe-location-form" id="safe-location-form">
+                            <h3><i class="fas fa-plus-circle"></i> Agregar ubicación segura</h3>
+                            <div class="form-row">
+                                <input type="text" id="safe-name" placeholder="Nombre (ej. Casa de mamá)" required>
+                                <input type="text" id="safe-address" placeholder="Dirección (ej. Av. Aviación 1234, San Borja)" required>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-check"></i> Guardar
+                                </button>
+                            </div>
+                            <p class="form-hint" id="safe-form-status"></p>
+                        </form>
+                        <div class="safe-locations-list" id="safe-locations-list">
+                            <!-- Se llena dinámicamente -->
+                        </div>
+                    </div>
                 </div>
 
                 <div class="refugios-grid">
-
                     <div class="map-wrapper" style="display: flex; flex-direction: column; gap: 10px;">
                         <div id="map" style="height: 340px; width: 100%; border-radius: var(--radius-card); z-index: 1; box-shadow: var(--shadow-card);"></div>
                         <div id="map-status" style="font-size: 12px; color: var(--purple-main); font-weight: 600; text-align: center;"></div>
@@ -261,7 +299,6 @@
                     <button id="btn-load-more" class="btn btn-outline" style="grid-column: 1 / -1; margin: 20px auto; display: none;">
                         <i class="fas fa-plus-circle"></i> Cargar más resultados
                     </button>
-
                 </div>
             </div>
         </section>
