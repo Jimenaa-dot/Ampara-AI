@@ -2,10 +2,10 @@
    AMPARA AI - MÓDULO DE EXPEDIENTE (ligado a la cuenta)
    =========================================
    Flujo pensado para no poner una barrera de login antes de que la
-   víctima pueda ver el análisis: cualquiera puede subir un .txt y ver
-   el resultado (nivel de riesgo, hallazgos) sin haber iniciado sesión.
-   El login solo se pide para GUARDAR ese resultado como parte del
-   expediente permanente.
+   víctima pueda ver el análisis: cualquiera puede subir un .txt o una
+   captura y ver el resultado (nivel de riesgo, hallazgos) sin haber
+   iniciado sesión. El login solo se pide para GUARDAR ese resultado
+   como parte del expediente permanente.
 
    Requiere que se hayan cargado antes, en este orden:
    1. supabase-client.js
@@ -111,12 +111,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function procesarArchivo(archivo) {
-        if (!archivo.name.toLowerCase().endsWith('.txt')) {
-            mostrarEstado('El archivo debe ser el .txt exportado desde WhatsApp (Más > Exportar chat > Sin archivos multimedia).', 'error');
+        const esImagen = archivo.type.startsWith('image/');
+        const esTxt = archivo.name.toLowerCase().endsWith('.txt');
+
+        if (!esImagen && !esTxt) {
+            mostrarEstado('El archivo debe ser el .txt exportado desde WhatsApp o una captura (.jpg, .png).', 'error');
             return;
         }
         if (archivo.size > 15 * 1024 * 1024) {
-            mostrarEstado('El archivo es muy grande (más de 15 MB). Intenta exportar un rango de fechas más corto.', 'error');
+            mostrarEstado('El archivo es muy grande (más de 15 MB). Intenta con un archivo más pequeño.', 'error');
             return;
         }
 
@@ -124,41 +127,71 @@ document.addEventListener('DOMContentLoaded', () => {
             if (previewContainer) previewContainer.hidden = true;
             analisisPendienteDeGuardar = null;
 
-            mostrarEstado('Leyendo archivo...', 'progreso');
-            const textoCompleto = await archivo.text();
+            let caso;
 
-            mostrarEstado('Calculando huella digital (cadena de custodia)...', 'progreso');
-            const hash = await calcularHashSHA256(textoCompleto);
-            const sello = generarSelloDeTiempo();
+            if (esImagen) {
+                // =========================================
+                // FLUJO IMAGEN (captura de pantalla)
+                // =========================================
+                mostrarEstado('Analizando la captura con IA, esto puede tomar unos segundos...', 'progreso');
+                const analisis = await analizarImagen(archivo);
 
-            mostrarEstado('Interpretando la conversación...', 'progreso');
-            const mensajes = parsearChatWhatsApp(textoCompleto);
-            const validacion = validarFormatoWhatsApp(mensajes);
-            if (!validacion.valido) {
-                mostrarEstado(validacion.motivo, 'error');
-                return;
+                caso = {
+                    nombre_archivo: archivo.name,
+                    hash_sha256: null,
+                    num_mensajes: 0,
+                    fecha_primer_mensaje: null,
+                    fecha_ultimo_mensaje: null,
+                    nivel_riesgo: analisis.nivel_riesgo,
+                    categorias: analisis.categorias,
+                    tendencia: analisis.tendencia,
+                    resumen: analisis.resumen,
+                    hallazgos: analisis.hallazgos,
+                    fuente_analisis: analisis.fuente_analisis
+                };
+
+                ocultarEstado();
+                mostrarResultadoPreview(caso, '(imagen analizada por IA)', generarSelloDeTiempo());
+            } else {
+                // =========================================
+                // FLUJO .TXT
+                // =========================================
+                mostrarEstado('Leyendo archivo...', 'progreso');
+                const textoCompleto = await archivo.text();
+
+                mostrarEstado('Calculando huella digital (cadena de custodia)...', 'progreso');
+                const hash = await calcularHashSHA256(textoCompleto);
+                const sello = generarSelloDeTiempo();
+
+                mostrarEstado('Interpretando la conversación...', 'progreso');
+                const mensajes = parsearChatWhatsApp(textoCompleto);
+                const validacion = validarFormatoWhatsApp(mensajes);
+                if (!validacion.valido) {
+                    mostrarEstado(validacion.motivo, 'error');
+                    return;
+                }
+                const stats = resumenEstadisticoChat(mensajes);
+
+                mostrarEstado('Analizando señales de riesgo, esto puede tomar unos segundos...', 'progreso');
+                const analisis = await analizarArchivo(archivo, mensajes, stats);
+
+                caso = {
+                    nombre_archivo: archivo.name,
+                    hash_sha256: hash,
+                    num_mensajes: stats.totalMensajes,
+                    fecha_primer_mensaje: stats.fechaPrimerMensaje ? stats.fechaPrimerMensaje.toISOString() : null,
+                    fecha_ultimo_mensaje: stats.fechaUltimoMensaje ? stats.fechaUltimoMensaje.toISOString() : null,
+                    nivel_riesgo: analisis.nivel_riesgo,
+                    categorias: analisis.categorias,
+                    tendencia: analisis.tendencia,
+                    resumen: analisis.resumen,
+                    hallazgos: analisis.hallazgos,
+                    fuente_analisis: analisis.fuente_analisis
+                };
+
+                ocultarEstado();
+                mostrarResultadoPreview(caso, hash, sello);
             }
-            const stats = resumenEstadisticoChat(mensajes);
-
-            mostrarEstado('Analizando señales de riesgo, esto puede tomar unos segundos...', 'progreso');
-            const analisis = await analizarArchivo(archivo, mensajes, stats);
-
-            const caso = {
-                nombre_archivo: archivo.name,
-                hash_sha256: hash,
-                num_mensajes: stats.totalMensajes,
-                fecha_primer_mensaje: stats.fechaPrimerMensaje ? stats.fechaPrimerMensaje.toISOString() : null,
-                fecha_ultimo_mensaje: stats.fechaUltimoMensaje ? stats.fechaUltimoMensaje.toISOString() : null,
-                nivel_riesgo: analisis.nivel_riesgo,
-                categorias: analisis.categorias,
-                tendencia: analisis.tendencia,
-                resumen: analisis.resumen,
-                hallazgos: analisis.hallazgos,
-                fuente_analisis: analisis.fuente_analisis
-            };
-
-            ocultarEstado();
-            mostrarResultadoPreview(caso, hash, sello);
 
             if (window.amparaAuth.currentUser) {
                 await guardarCaso(caso);
@@ -167,8 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 actualizarBotonGuardarPreview(true);
                 cargarExpediente();
             } else {
-                // No hay sesión: el análisis se muestra igual, pero se
-                // guarda en memoria por si inicia sesión justo después.
                 analisisPendienteDeGuardar = caso;
                 actualizarBotonGuardarPreview(false);
             }
@@ -197,6 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function mostrarResultadoPreview(caso, hash, sello) {
         if (!previewContainer) return;
         const badge = ETIQUETAS_RIESGO[caso.nivel_riesgo] || ETIQUETAS_RIESGO.bajo;
+        const hashTexto = typeof hash === 'string' ? hash.slice(0, 16) : String(hash);
 
         previewContainer.hidden = false;
         previewContainer.innerHTML = `
@@ -209,8 +241,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <p class="caso-resumen">${escaparHTML(caso.resumen)}</p>
                 <div class="caso-meta">
-                    <span class="caption"><i class="fas fa-comments" aria-hidden="true"></i> ${caso.num_mensajes} mensajes</span>
-                    <span class="caption"><i class="fas fa-fingerprint" aria-hidden="true"></i> ${hash.slice(0, 16)}...</span>
+                    <span class="caption"><i class="fas fa-comments" aria-hidden="true"></i> ${caso.num_mensajes > 0 ? caso.num_mensajes + ' mensajes' : 'Análisis de captura'}</span>
+                    <span class="caption"><i class="fas fa-fingerprint" aria-hidden="true"></i> ${escaparHTML(hashTexto)}...</span>
                     <span class="caption"><i class="fas fa-clock" aria-hidden="true"></i> ${sello.legible}</span>
                 </div>
                 ${caso.hallazgos && caso.hallazgos.length ? `
@@ -218,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${caso.hallazgos.map(h => `
                         <div class="hallazgo-item">
                             <span class="hallazgo-categoria">${escaparHTML(h.categoria)}</span>
-                            <span class="caption">${escaparHTML(h.remitente)} · ${escaparHTML(h.fecha || '')} ${escaparHTML(h.hora || '')}</span>
+                            <span class="caption">${escaparHTML(h.remitente || '')} · ${escaparHTML(h.fecha || '')} ${escaparHTML(h.hora || '')}</span>
                             <p>"${escaparHTML(h.mensaje)}"</p>
                         </div>
                     `).join('')}
@@ -314,6 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         casos.forEach(caso => {
             const badge = ETIQUETAS_RIESGO[caso.nivel_riesgo] || ETIQUETAS_RIESGO.bajo;
+            const hashMostrar = caso.hash_sha256 ? caso.hash_sha256.slice(0, 12) + '...' : '(imagen)';
             const card = document.createElement('div');
             card.className = 'card caso-card';
             card.innerHTML = `
@@ -326,8 +359,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <p class="caso-resumen">${escaparHTML(caso.resumen)}</p>
                 <div class="caso-meta">
-                    <span class="caption"><i class="fas fa-comments" aria-hidden="true"></i> ${caso.num_mensajes} mensajes</span>
-                    <span class="caption"><i class="fas fa-fingerprint" aria-hidden="true"></i> ${caso.hash_sha256.slice(0, 12)}...</span>
+                    <span class="caption"><i class="fas fa-comments" aria-hidden="true"></i> ${caso.num_mensajes > 0 ? caso.num_mensajes + ' mensajes' : 'Captura'}</span>
+                    <span class="caption"><i class="fas fa-fingerprint" aria-hidden="true"></i> ${hashMostrar}</span>
                     <span class="caption"><i class="fas fa-clock" aria-hidden="true"></i> Subido ${new Date(caso.creado_en).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' })}</span>
                 </div>
                 ${caso.hallazgos && caso.hallazgos.length ? `
@@ -353,7 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         panelHallazgos.innerHTML = caso.hallazgos.map(h => `
                             <div class="hallazgo-item">
                                 <span class="hallazgo-categoria">${escaparHTML(h.categoria)}</span>
-                                <span class="caption">${escaparHTML(h.remitente)} · ${escaparHTML(h.fecha || '')} ${escaparHTML(h.hora || '')}</span>
+                                <span class="caption">${escaparHTML(h.remitente || '')} · ${escaparHTML(h.fecha || '')} ${escaparHTML(h.hora || '')}</span>
                                 <p>"${escaparHTML(h.mensaje)}"</p>
                             </div>
                         `).join('');
