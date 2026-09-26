@@ -1,17 +1,3 @@
-/* =========================================
-   AMPARA AI - AUTENTICACIÓN (Supabase)
-   =========================================
-   Maneja todo el modal #auth-modal: cambio entre "Iniciar sesión" y
-   "Crear cuenta", el campo de teléfono (solo al registrarse),
-   el login/registro real y el cierre de sesión.
-
-   El teléfono se guarda en los datos de la cuenta de Supabase
-   (user_metadata.telefono), así otros módulos pueden leerlo con:
-       window.amparaAuth.currentUser.user_metadata.telefono
-
-   Requiere que supabase-client.js se haya cargado antes.
-   ========================================= */
-
 document.addEventListener('DOMContentLoaded', () => {
     'use strict';
 
@@ -169,10 +155,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 showAuthError('La contraseña debe tener al menos 6 caracteres.');
                 return;
             }
-            if (isRegisterMode && !telefonoValido(telefono)) {
-                showAuthError('Ingresa un celular válido de 9 dígitos (ej. 987654321).');
-                return;
-            }
 
             const modoAlEnviar = isRegisterMode;
             if (authSubmitBtn) {
@@ -185,10 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const { data, error } = await supabaseClient.auth.signUp({
                         email,
                         password,
-                        options: {
-                            emailRedirectTo: window.location.origin,
-                            data: { telefono: '+51' + telefono }
-                        }
+                        options: { emailRedirectTo: window.location.origin }
                     });
                     if (error) throw error;
 

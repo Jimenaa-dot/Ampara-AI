@@ -1,23 +1,3 @@
-/* =========================================
-   AMPARA AI - MOTOR DE ANÁLISIS DE RIESGO (v2)
-   =========================================
-   Analiza el chat completo con dos capas:
-
-   1. Lenguaje: frases de riesgo agrupadas por categoría, sobre el
-      texto normalizado (sin tildes, abreviaturas de WhatsApp
-      expandidas, letras repetidas reducidas) y con detección simple
-      de negaciones ("no te voy a hacer daño" no cuenta).
-   2. Comportamiento: ráfagas de mensajes sin respuesta, mensajes de
-      madrugada, señales repetidas en varios días y escalamiento.
-
-   Si AMPARA_ANALYSIS_WEBHOOK_URL tiene un endpoint (por ejemplo, el
-   análisis con IA), se usa ese resultado y este motor queda como
-   respaldo automático si la IA falla.
-
-   IMPORTANTE: es un análisis técnico preliminar, no un veredicto.
-   ========================================= */
-
-// Endpoint opcional del análisis con IA (dejar vacío para usar solo el motor local)
 const AMPARA_ANALYSIS_WEBHOOK_URL = '';
 
 // =========================================

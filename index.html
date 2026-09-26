@@ -343,43 +343,64 @@
          ========================================= -->
     <div class="modal-overlay" id="emergency-modal" hidden>
         <div class="modal-card" role="dialog" aria-modal="true" aria-label="Alerta de emergencia">
-            <i class="fas fa-triangle-exclamation emergency-icon" aria-hidden="true"></i>
-            <h2>Alerta activada</h2>
-            <p>Envía tu ubicación a tu círculo de confianza con un toque. Si estás en peligro inmediato, llama al 105.</p>
 
-            <div class="checklist">
-                <div class="checklist-item done">
-                    <div class="status-icon"><i class="fas fa-check" aria-hidden="true"></i></div>
-                    <div class="text">Activación</div>
-                    <div class="status-text">Listo</div>
-                </div>
-                <div class="checklist-item" id="check-ubicacion">
-                    <div class="status-icon"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i></div>
-                    <div class="text">Ubicación GPS</div>
-                    <div class="status-text">Obteniendo...</div>
-                </div>
-                <div class="checklist-item" id="check-envio">
-                    <div class="status-icon"><i class="fas fa-hand-pointer" aria-hidden="true"></i></div>
-                    <div class="text">Enviar ubicación a contactos de confianza</div>
-                    <div class="status-text">Toca un contacto</div>
-                </div>
+            <!-- Paso 1: cuenta regresiva (se puede cancelar) -->
+            <div id="sos-countdown" class="sos-countdown">
+                <div class="sos-countdown-ring"><span id="sos-countdown-num">3</span></div>
+                <h2>Activando alerta...</h2>
+                <p>En unos segundos llamaremos a emergencias y prepararemos tu ubicación para tu círculo de confianza.</p>
+                <button type="button" id="btn-sos-cancel" class="btn btn-white btn-block sos-btn-cancel">
+                    <i class="fas fa-xmark" aria-hidden="true"></i> Cancelar, fue un error
+                </button>
+                <button type="button" id="btn-sos-now" class="btn btn-block btn-call-105">
+                    Activar ya
+                </button>
             </div>
 
-            <a href="tel:105" class="btn btn-block btn-call-105">
-                <i class="fas fa-phone" aria-hidden="true"></i> Llamar a la Policía (105)
-            </a>
+            <!-- Paso 2: alerta activa -->
+            <div id="sos-activa" hidden>
+                <i class="fas fa-triangle-exclamation emergency-icon" aria-hidden="true"></i>
+                <h2>Alerta activada</h2>
 
-            <div id="emergency-contacts" class="emergency-contacts">
-                <p class="emergency-contacts-title">Tu círculo de confianza</p>
-                <div id="emergency-contacts-list"></div>
+                <div class="checklist">
+                    <div class="checklist-item done">
+                        <div class="status-icon"><i class="fas fa-check" aria-hidden="true"></i></div>
+                        <div class="text">Activación</div>
+                        <div class="status-text">Listo</div>
+                    </div>
+                    <div class="checklist-item" id="check-ubicacion">
+                        <div class="status-icon"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i></div>
+                        <div class="text">Ubicación GPS</div>
+                        <div class="status-text">Obteniendo...</div>
+                    </div>
+                    <div class="checklist-item" id="check-llamada">
+                        <div class="status-icon"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i></div>
+                        <div class="text">Llamada a emergencias</div>
+                        <div class="status-text">Conectando...</div>
+                    </div>
+                    <div class="checklist-item" id="check-envio">
+                        <div class="status-icon"><i class="fas fa-hand-pointer" aria-hidden="true"></i></div>
+                        <div class="text">Ubicación a tu círculo de confianza</div>
+                        <div class="status-text">Pendiente</div>
+                    </div>
+                </div>
+
+                <a href="#" id="btn-call-emergencia" class="btn btn-block btn-call-105">
+                    <i class="fas fa-phone" aria-hidden="true"></i> Llamar a la Policía (demo)
+                </a>
+
+                <div id="emergency-contacts" class="emergency-contacts">
+                    <p class="emergency-contacts-title">Tu círculo de confianza</p>
+                    <div id="emergency-contacts-list"></div>
+                </div>
+
+                <button type="button" id="btn-share-location" class="btn btn-outline btn-block">
+                    <i class="fas fa-share-nodes" aria-hidden="true"></i> Compartir mi ubicación por otra app
+                </button>
+                <p id="emergency-hint" class="caption emergency-hint"></p>
+
+                <button id="btn-cancel-alert" class="btn btn-white btn-block">Cerrar alerta</button>
             </div>
-
-            <button type="button" id="btn-share-location" class="btn btn-outline btn-block">
-                <i class="fas fa-share-nodes" aria-hidden="true"></i> Compartir mi ubicación por otra app
-            </button>
-            <p id="emergency-hint" class="caption emergency-hint"></p>
-
-            <button id="btn-cancel-alert" class="btn btn-white btn-block">Cerrar alerta</button>
         </div>
     </div>
 
@@ -404,12 +425,6 @@
                 <div class="form-group">
                     <label for="auth-password">Contraseña</label>
                     <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password" required>
-                </div>
-                <!-- Campo de teléfono: solo visible al crear cuenta -->
-                <div class="form-group" id="auth-phone-group" hidden>
-                    <label for="auth-phone">Tu número de celular</label>
-                    <input type="tel" id="auth-phone" placeholder="Ej. 987654321" autocomplete="tel" inputmode="tel">
-                    <span class="caption">Lo usaremos solo para emergencias. Nadie más lo verá.</span>
                 </div>
                 <button type="submit" class="btn btn-primary btn-block" id="auth-submit-btn">Iniciar sesión</button>
             </form>

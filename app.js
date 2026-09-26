@@ -114,6 +114,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnEmergency = document.getElementById('btn-emergency');
     const btnCancelAlert = document.getElementById('btn-cancel-alert');
 
+    // --- Configuración de la alerta ---
+    // PROTOTIPO: número de prueba que recibe la "llamada a la policía".
+    // En producción cambiar por '105'.
+    const NUMERO_EMERGENCIA = '961221678';
+
+    // Envío 100% automático (sin que la víctima toque nada). Requiere un
+    // servicio que mande los mensajes, por ejemplo un webhook de n8n
+    // conectado a Twilio (SMS) o Telegram. Recibe por POST:
+    //   { mensaje, ubicacion: {lat, lng, precision} | null,
+    //     contactos: [{ nombre, telefono: "+51..." }], usuaria }
+    // Si se deja vacío, la víctima envía por WhatsApp con un toque.
+    const AMPARA_ALERTA_WEBHOOK_URL = '';
+
+    const SEGUNDOS_CUENTA_REGRESIVA = 3;
+
     // --- Ubicación real del dispositivo para la alerta ---
     let ubicacionEmergencia = null;         // { lat, lng, precision }
     let buscandoUbicacion = false;
@@ -205,15 +220,11 @@ document.addEventListener('DOMContentLoaded', () => {
         list.innerHTML = contactos.map(c => {
             const num = telefonoInternacional(c.telefono);
             const wa = `https://wa.me/${num}?text=${encodeURIComponent(mensaje)}`;
-            const sms = `sms:+${num}?body=${encodeURIComponent(mensaje)}`;
             return `
                 <div class="emergency-contact-row">
                     <span class="emergency-contact-name">${escapeHTML(c.nombre)}</span>
                     <a class="emergency-btn-wa" href="${wa}" target="_blank" rel="noopener" data-nombre="${escapeHTML(c.nombre)}">
                         <i class="fab fa-whatsapp" aria-hidden="true"></i> Enviar ubicación${esperando}
-                    </a>
-                    <a class="emergency-btn-icon" href="${sms}" data-nombre="${escapeHTML(c.nombre)}" title="Enviar por SMS" aria-label="Enviar por SMS a ${escapeHTML(c.nombre)}">
-                        <i class="fas fa-comment-sms" aria-hidden="true"></i>
                     </a>
                     <a class="emergency-btn-icon" href="tel:+${num}" title="Llamar" aria-label="Llamar a ${escapeHTML(c.nombre)}">
                         <i class="fas fa-phone" aria-hidden="true"></i>
@@ -222,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }).join('');
 
-        list.querySelectorAll('.emergency-btn-wa, .emergency-btn-icon[href^="sms:"]').forEach(a => {
+        list.querySelectorAll('.emergency-btn-wa').forEach(a => {
             a.addEventListener('click', () => {
                 contactosAvisados.add(a.dataset.nombre);
                 const nombres = [...contactosAvisados];
@@ -230,7 +241,40 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        if (contactosAvisados.size === 0) setCheck('check-envio', 'pendiente', 'Toca un contacto');
+        if (contactosAvisados.size === 0) setCheck('check-envio', 'pendiente', 'Toca "Enviar ubicación"');
+    }
+
+
+    // Envío automático por webhook (si está configurado)
+    async function enviarAlertaAutomatica() {
+        const contactos = getCurrentUser() ? contactosCache.filter(c => c.telefono) : [];
+        if (contactos.length === 0) {
+            setCheck('check-envio', 'pendiente', 'Sin contactos guardados');
+            return;
+        }
+        if (!AMPARA_ALERTA_WEBHOOK_URL) {
+            if (contactosAvisados.size === 0) setCheck('check-envio', 'pendiente', 'Toca "Enviar ubicación"');
+            return;
+        }
+
+        setCheck('check-envio', 'cargando', 'Enviando...');
+        try {
+            const res = await fetch(AMPARA_ALERTA_WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mensaje: construirMensajeAlerta(),
+                    ubicacion: ubicacionEmergencia,
+                    contactos: contactos.map(c => ({ nombre: c.nombre, telefono: '+' + telefonoInternacional(c.telefono) })),
+                    usuaria: getCurrentUser() ? getCurrentUser().email : null
+                })
+            });
+            if (!res.ok) throw new Error(`Webhook respondió ${res.status}`);
+            setCheck('check-envio', 'ok', `Enviada a ${contactos.length} ${contactos.length === 1 ? 'contacto' : 'contactos'}`);
+        } catch (err) {
+            console.error('No se pudo enviar la alerta automática:', err);
+            setCheck('check-envio', 'error', 'Falló, envíala por WhatsApp');
+        }
     }
 
     async function compartirUbicacionGenerica() {
@@ -251,29 +295,88 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnShareLocation = document.getElementById('btn-share-location');
     if (btnShareLocation) btnShareLocation.addEventListener('click', compartirUbicacionGenerica);
 
+    // --- Flujo: cuenta regresiva -> alerta activa ---
+    let temporizadorSOS = null;
+    let promesaUbicacionSOS = null;
+    let alertaActiva = false;
+
+    const sosCountdown = document.getElementById('sos-countdown');
+    const sosActiva = document.getElementById('sos-activa');
+    const sosNum = document.getElementById('sos-countdown-num');
+    const btnCallEmergencia = document.getElementById('btn-call-emergencia');
+    if (btnCallEmergencia) btnCallEmergencia.href = `tel:+51${NUMERO_EMERGENCIA}`;
+
     function openEmergencyModal() {
+        if (alertaActiva || temporizadorSOS) {
+            if (emergencyModal) emergencyModal.hidden = false;
+            return;
+        }
         contactosAvisados.clear();
         const hint = document.getElementById('emergency-hint');
         if (hint) hint.textContent = '';
         ubicacionEmergencia = null;
+
+        if (sosCountdown) sosCountdown.hidden = false;
+        if (sosActiva) sosActiva.hidden = true;
         if (emergencyModal) emergencyModal.hidden = false;
 
-        const promesa = obtenerUbicacionEmergencia();
-        renderContactosEnEmergencia();
-        // Cuando llega la ubicación, los botones se actualizan con el link del mapa
-        promesa.then(() => renderContactosEnEmergencia());
+        // El GPS empieza a buscar durante la cuenta regresiva
+        promesaUbicacionSOS = obtenerUbicacionEmergencia();
+
+        let restantes = SEGUNDOS_CUENTA_REGRESIVA;
+        if (sosNum) sosNum.textContent = restantes;
+        if (navigator.vibrate) navigator.vibrate(200);
+        temporizadorSOS = setInterval(() => {
+            restantes--;
+            if (restantes <= 0) {
+                activarAlerta();
+            } else {
+                if (sosNum) sosNum.textContent = restantes;
+                if (navigator.vibrate) navigator.vibrate(120);
+            }
+        }, 1000);
     }
+
+    function detenerCuentaRegresiva() {
+        if (temporizadorSOS) clearInterval(temporizadorSOS);
+        temporizadorSOS = null;
+    }
+
+    async function activarAlerta() {
+        detenerCuentaRegresiva();
+        alertaActiva = true;
+        if (sosCountdown) sosCountdown.hidden = true;
+        if (sosActiva) sosActiva.hidden = false;
+
+        renderContactosEnEmergencia();
+
+        // 1) Llamada automática a emergencias (abre el marcador del celular)
+        setCheck('check-llamada', 'ok', `Llamando al ${NUMERO_EMERGENCIA}`);
+        window.location.href = `tel:+51${NUMERO_EMERGENCIA}`;
+
+        // 2) Esperar la ubicación (ya se venía buscando) y actualizar los enlaces
+        await promesaUbicacionSOS;
+        renderContactosEnEmergencia();
+
+        // 3) Envío automático si hay webhook configurado
+        await enviarAlertaAutomatica();
+    }
+
     function closeEmergencyModal() {
+        detenerCuentaRegresiva();
+        alertaActiva = false;
         if (emergencyModal) emergencyModal.hidden = true;
     }
 
+    const btnSosCancel = document.getElementById('btn-sos-cancel');
+    if (btnSosCancel) btnSosCancel.addEventListener('click', closeEmergencyModal);
+    const btnSosNow = document.getElementById('btn-sos-now');
+    if (btnSosNow) btnSosNow.addEventListener('click', activarAlerta);
+
     if (btnEmergency) btnEmergency.addEventListener('click', openEmergencyModal);
     if (btnCancelAlert) btnCancelAlert.addEventListener('click', closeEmergencyModal);
-    if (emergencyModal) {
-        emergencyModal.addEventListener('click', (e) => {
-            if (e.target === emergencyModal) closeEmergencyModal();
-        });
-    }
+    // Tocar fuera del modal no lo cierra: en una emergencia es fácil
+    // tocar mal, se cierra solo con "Cancelar" o "Cerrar alerta".
 
     // =========================================
     // 3. CÍRCULO DE CONFIANZA (Supabase: contactos_emergencia)
