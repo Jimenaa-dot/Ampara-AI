@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const stats = resumenEstadisticoChat(mensajes);
 
             mostrarEstado('Analizando señales de riesgo, esto puede tomar unos segundos...', 'progreso');
-            const analisis = await analizarRiesgoChat(mensajes, stats);
+            const analisis = await analizarArchivo(archivo, mensajes, stats);
 
             const caso = {
                 nombre_archivo: archivo.name,

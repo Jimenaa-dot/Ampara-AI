@@ -1,4 +1,5 @@
-const AMPARA_ANALYSIS_WEBHOOK_URL = '';
+const AMPARA_ANALYSIS_WEBHOOK_URL = 'https://ncol021.app.n8n.cloud/webhook/ampara-analisis';
+const AMPARA_ANALYSIS_IMAGE_WEBHOOK_URL = 'https://ncol021.app.n8n.cloud/webhook/ampara-analisis-imagen';
 
 // =========================================
 // 1. NORMALIZACIÓN DEL TEXTO
@@ -333,3 +334,67 @@ async function analizarRiesgoChat(mensajes, stats) {
         return analizarLocalmente(mensajes, stats);
     }
 }
+
+
+// =========================================
+// 7. ANÁLISIS DE IMAGEN (capturas de pantalla)
+// =========================================
+async function analizarImagen(file) {
+    const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+
+    try {
+        const res = await fetch(AMPARA_ANALYSIS_IMAGE_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                imagen_base64: base64,
+                mime_type: file.type,
+                nombre_archivo: file.name
+            })
+        });
+
+        if (!res.ok) throw new Error(`Webhook respondió ${res.status}`);
+        const data = await res.json();
+
+        if (!data || !data.nivel_riesgo || !data.resumen) {
+            throw new Error('Respuesta del webhook de imágenes incompleta');
+        }
+
+        return {
+            nivel_riesgo: data.nivel_riesgo,
+            categorias: Array.isArray(data.categorias) ? data.categorias : [],
+            tendencia: data.tendencia || 'sin_patron_claro',
+            hallazgos: Array.isArray(data.hallazgos) ? data.hallazgos : [],
+            resumen: data.resumen,
+            texto_extraido: data.texto_extraido || '',
+            fuente_analisis: 'ia_vision'
+        };
+    } catch (err) {
+        console.warn('⚠️ Falló análisis de imagen:', err);
+        return {
+            nivel_riesgo: 'bajo',
+            categorias: [],
+            tendencia: 'sin_patron_claro',
+            hallazgos: [],
+            resumen: 'No se pudo analizar la imagen en este momento. Intenta con otro archivo o exporta el chat como .txt.',
+            fuente_analisis: 'error',
+            error: true
+        };
+    }
+}
+
+// =========================================
+// 8. FUNCIÓN UNIFICADA: detecta si es imagen o texto
+// =========================================
+async function analizarArchivo(file, mensajes, stats) {
+    if (file.type.startsWith('image/')) {
+        return await analizarImagen(file);
+    }
+    return await analizarRiesgoChat(mensajes, stats);
+}
+
