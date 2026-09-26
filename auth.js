@@ -123,7 +123,11 @@
  
             try {
                 if (isRegisterMode) {
-                    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+                    const { data, error } = await supabaseClient.auth.signUp({
+                        email,
+                        password,
+                        options: { emailRedirectTo: window.location.origin }
+                    });
                     if (error) throw error;
 
                     if (!data.session) {
@@ -151,11 +155,14 @@
     }
  
     function traducirErrorAuth(err) {
+        console.error('Error de Supabase Auth:', err);
         const msg = (err && err.message) || '';
         if (msg.includes('Invalid login credentials')) return 'Correo o contraseña incorrectos.';
         if (msg.includes('User already registered')) return 'Ya existe una cuenta con este correo. Intenta iniciar sesión.';
         if (msg.includes('Password should be')) return 'La contraseña es muy débil, usa al menos 6 caracteres.';
-        return 'Ocurrió un error. Intenta de nuevo en unos segundos.';
+        if (msg.includes('Email not confirmed')) return 'Debes confirmar tu correo antes de iniciar sesión (revisa tu bandeja).';
+        if (msg.toLowerCase().includes('rate limit')) return 'Demasiados intentos seguidos. Espera un minuto e intenta de nuevo.';
+        return 'Error: ' + msg;
     }
  
     async function cerrarSesion() {

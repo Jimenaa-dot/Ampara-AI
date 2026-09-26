@@ -1,5 +1,7 @@
 /* =========================================
    AMPARA AI - LÓGICA DEL SITIO WEB
+   =========================================
+   Requiere que antes se carguen: supabase-client.js y auth.js
    ========================================= */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -12,55 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const amparaSessionId = 'sess_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
     const amparaHistory = [];
 
-
-        // =========================================
-    // 0.1. MODO OSCURO / CLARO
     // =========================================
-    const btnThemeToggle = document.getElementById('btn-theme-toggle');
-    const rootElement = document.documentElement;
-
-    // Leer preferencia guardada o la del sistema
-    function getPreferredTheme() {
-        const saved = localStorage.getItem('ampara_theme');
-        if (saved === 'dark' || saved === 'light') return saved;
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-
-    // Aplicar tema
-    function applyTheme(theme) {
-        rootElement.setAttribute('data-theme', theme);
-        localStorage.setItem('ampara_theme', theme);
-        if (btnThemeToggle) {
-            const icon = btnThemeToggle.querySelector('i');
-            if (icon) {
-                icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-            }
-            btnThemeToggle.setAttribute('aria-label',
-                theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
-        }
-    }
-
-    // Inicializar
-    applyTheme(getPreferredTheme());
-
-    // Toggle al hacer clic
-    if (btnThemeToggle) {
-        btnThemeToggle.addEventListener('click', () => {
-            const current = rootElement.getAttribute('data-theme');
-            applyTheme(current === 'dark' ? 'light' : 'dark');
-        });
-    }
-
-    // Escuchar cambios de preferencia del sistema
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-        if (!localStorage.getItem('ampara_theme')) {
-            applyTheme(e.matches ? 'dark' : 'light');
-        }
-    });
-
-
-    // =========================================
-    // Helpers: limpiar texto de la IA
+    // Helpers
     // =========================================
     function cleanAIText(rawText) {
         let text = String(rawText || '');
@@ -81,8 +36,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return text.slice(0, 500);
     }
 
+    function escapeHTML(texto) {
+        const div = document.createElement('div');
+        div.textContent = texto == null ? '' : String(texto);
+        return div.innerHTML;
+    }
+
+    function getCurrentUser() {
+        return (window.amparaAuth && window.amparaAuth.currentUser) ? window.amparaAuth.currentUser : null;
+    }
+
     // =========================================
-    // 2. MENÚ MÓVIL
+    // 1. MENÚ MÓVIL
     // =========================================
     const navToggle = document.getElementById('nav-toggle');
     const mainNav = document.getElementById('main-nav');
@@ -100,13 +65,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================
-    // 3. MODAL DE EMERGENCIA
+    // 2. MODAL DE EMERGENCIA (muestra el círculo de confianza)
     // =========================================
     const emergencyModal = document.getElementById('emergency-modal');
     const btnEmergency = document.getElementById('btn-emergency');
     const btnCancelAlert = document.getElementById('btn-cancel-alert');
 
+    function renderContactosEnEmergencia() {
+        const wrap = document.getElementById('emergency-contacts');
+        const list = document.getElementById('emergency-contacts-list');
+        if (!wrap || !list) return;
+
+        const contactos = contactosCache.filter(c => c.telefono);
+        if (!getCurrentUser() || contactos.length === 0) {
+            wrap.hidden = true;
+            return;
+        }
+        wrap.hidden = false;
+        list.innerHTML = contactos.map(c => `
+            <a class="emergency-contact-btn" href="tel:${escapeHTML(c.telefono)}">
+                <i class="fas fa-phone" aria-hidden="true"></i>
+                <span>Llamar a ${escapeHTML(c.nombre)}</span>
+            </a>
+        `).join('');
+    }
+
     function openEmergencyModal() {
+        renderContactosEnEmergencia();
         if (emergencyModal) emergencyModal.hidden = false;
     }
     function closeEmergencyModal() {
@@ -122,63 +107,55 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================
-    // 4. ESTADO DE SESIÓN (la maneja auth.js con Supabase)
+    // 3. CÍRCULO DE CONFIANZA (Supabase: contactos_emergencia)
     // =========================================
-    // El modal de login/registro y el botón de la cabecera ya los maneja
-    // auth.js. Aquí solo escuchamos cuándo cambia la sesión para saber
-    // el correo de la usuaria actual y refrescar lo que dependa de eso.
+    let contactosCache = [];
 
-    function getCurrentUserEmail() {
-        return (window.amparaAuth && window.amparaAuth.currentUser)
-            ? window.amparaAuth.currentUser.email
-            : null;
-    }
-
-    document.addEventListener('ampara:auth-changed', () => {
-        if (categoriaActiva === 'seguras') renderSafeLocationsPanel();
-    });
-
-    // =========================================
-    // 4.1. UBICACIONES SEGURAS (ligadas a la cuenta real)
-    // =========================================
-
-    // Obtener ubicaciones seguras del usuario actual
-    function getSafeLocations() {
-        const email = getCurrentUserEmail();
-        if (!email) return [];
-        const key = `ampara_safe_locations_${email}`;
-        try {
-            return JSON.parse(localStorage.getItem(key)) || [];
-        } catch {
-            return [];
+    async function cargarContactos() {
+        if (!getCurrentUser()) {
+            contactosCache = [];
+            return;
         }
+        const { data, error } = await supabaseClient
+            .from('contactos_emergencia')
+            .select('*')
+            .order('creado_en', { ascending: true });
+        if (error) {
+            console.error('Error cargando contactos:', error);
+            contactosCache = [];
+            return;
+        }
+        contactosCache = data || [];
     }
 
-    // Guardar ubicaciones seguras
-    function saveSafeLocations(locations) {
-        const email = getCurrentUserEmail();
-        if (!email) return;
-        const key = `ampara_safe_locations_${email}`;
-        localStorage.setItem(key, JSON.stringify(locations));
+    async function agregarContacto(contacto) {
+        const { error } = await supabaseClient
+            .from('contactos_emergencia')
+            .insert({ user_id: getCurrentUser().id, ...contacto });
+        if (error) throw error;
+    }
+
+    async function borrarContacto(id) {
+        const { error } = await supabaseClient
+            .from('contactos_emergencia')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
     }
 
     // Geocodificar dirección usando Nominatim (OpenStreetMap, gratis)
     async function geocodeAddress(address) {
         const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address + ', Perú')}`;
-        const res = await fetch(url, {
-            headers: { 'Accept': 'application/json' }
-        });
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
         if (!res.ok) throw new Error('Error al buscar dirección');
         const data = await res.json();
         if (!data || data.length === 0) throw new Error('Dirección no encontrada');
         return {
             lat: parseFloat(data[0].lat),
-            lng: parseFloat(data[0].lon),
-            displayName: data[0].display_name
+            lng: parseFloat(data[0].lon)
         };
     }
 
-    // Renderizar panel de ubicaciones seguras
     function renderSafeLocationsPanel() {
         const panel = document.getElementById('safe-locations-panel');
         const prompt = document.getElementById('safe-locations-login-prompt');
@@ -187,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         panel.hidden = false;
 
-        if (!getCurrentUserEmail()) {
+        if (!getCurrentUser()) {
             prompt.hidden = false;
             content.hidden = true;
             return;
@@ -199,141 +176,140 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSafeLocationsOnMap();
     }
 
-    // Renderizar lista de ubicaciones guardadas
     function renderSafeLocationsList() {
         const list = document.getElementById('safe-locations-list');
         if (!list) return;
 
-        const locations = getSafeLocations();
-        if (locations.length === 0) {
+        if (contactosCache.length === 0) {
             list.innerHTML = `<p style="text-align:center; color:var(--text-secondary); font-size:14px; padding:20px;">
-                Aún no tienes ubicaciones guardadas. ¡Agrega la primera arriba! 💜
+                Aún no tienes personas en tu círculo de confianza. ¡Agrega la primera arriba! 💜
             </p>`;
             return;
         }
 
         list.innerHTML = '';
-        locations.forEach((loc, index) => {
+        contactosCache.forEach(c => {
             const item = document.createElement('div');
             item.className = 'safe-location-item';
             item.innerHTML = `
                 <i class="fas fa-house-chimney-heart"></i>
                 <div class="safe-info">
-                    <strong>${loc.name}</strong>
-                    <span>${loc.address}</span>
+                    <strong>${escapeHTML(c.nombre)}</strong>
+                    ${c.telefono ? `<span><i class="fas fa-phone" aria-hidden="true"></i> ${escapeHTML(c.telefono)}</span>` : ''}
+                    <span>${escapeHTML(c.direccion)}</span>
                 </div>
                 <div class="safe-actions">
-                    <button class="btn-go" data-index="${index}" title="Cómo llegar">
-                        <i class="fas fa-compass"></i>
-                    </button>
-                    <button class="btn-delete" data-index="${index}" title="Eliminar">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    ${c.telefono ? `<a class="btn-go" href="tel:${escapeHTML(c.telefono)}" title="Llamar"><i class="fas fa-phone"></i></a>` : ''}
+                    ${(c.lat && c.lng) ? `<button class="btn-go btn-route-contact" title="Cómo llegar"><i class="fas fa-compass"></i></button>` : ''}
+                    <button class="btn-delete" title="Eliminar"><i class="fas fa-trash"></i></button>
                 </div>
             `;
-            list.appendChild(item);
-        });
 
-        // Botón "Cómo llegar" → Google Maps
-        list.querySelectorAll('.btn-go').forEach(btn => {
-            btn.onclick = () => {
-                const loc = getSafeLocations()[parseInt(btn.dataset.index)];
-                if (!loc) return;
-                const userLoc = userMarker ? userMarker.getLatLng() : null;
-                const origin = userLoc ? `${userLoc.lat},${userLoc.lng}` : '';
-                const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${loc.lat},${loc.lng}`;
-                window.open(url, '_blank');
-            };
-        });
+            const btnRuta = item.querySelector('.btn-route-contact');
+            if (btnRuta) {
+                btnRuta.onclick = () => {
+                    const userLoc = userMarker ? userMarker.getLatLng() : null;
+                    const origin = userLoc ? `${userLoc.lat},${userLoc.lng}` : '';
+                    window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${c.lat},${c.lng}`, '_blank');
+                };
+            }
 
-        // Botón "Eliminar"
-        list.querySelectorAll('.btn-delete').forEach(btn => {
-            btn.onclick = () => {
-                const index = parseInt(btn.dataset.index);
-                const locations = getSafeLocations();
-                if (confirm(`¿Eliminar "${locations[index].name}"?`)) {
-                    locations.splice(index, 1);
-                    saveSafeLocations(locations);
+            item.querySelector('.btn-delete').onclick = async () => {
+                if (!confirm(`¿Quitar a "${c.nombre}" de tu círculo de confianza?`)) return;
+                try {
+                    await borrarContacto(c.id);
+                    await cargarContactos();
                     renderSafeLocationsList();
                     renderSafeLocationsOnMap();
+                } catch (err) {
+                    console.error(err);
+                    alert('No se pudo eliminar el contacto.');
                 }
             };
+
+            list.appendChild(item);
         });
     }
 
-    // Renderizar marcadores dorados en el mapa
     let safeMarkers = [];
     function renderSafeLocationsOnMap() {
         if (!map) return;
         safeMarkers.forEach(m => map.removeLayer(m));
         safeMarkers = [];
 
-        const locations = getSafeLocations();
-        locations.forEach(loc => {
+        contactosCache.forEach(c => {
+            if (!c.lat || !c.lng) return;
             const icon = L.divIcon({
                 className: '',
                 html: '<div class="safe-marker-icon"></div>',
                 iconSize: [24, 24],
                 iconAnchor: [12, 24]
             });
-            const marker = L.marker([loc.lat, loc.lng], { icon })
+            const marker = L.marker([c.lat, c.lng], { icon })
                 .addTo(map)
-                .bindPopup(`<b>🛡️ ${loc.name}</b><br><small>${loc.address}</small>`);
+                .bindPopup(`<b>🛡️ ${escapeHTML(c.nombre)}</b><br><small>${escapeHTML(c.direccion)}</small>${c.telefono ? `<br><a href="tel:${escapeHTML(c.telefono)}">📞 ${escapeHTML(c.telefono)}</a>` : ''}`);
             safeMarkers.push(marker);
         });
     }
 
-    // Formulario para agregar ubicación segura
     const safeForm = document.getElementById('safe-location-form');
     if (safeForm) {
         safeForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const nameInput = document.getElementById('safe-name');
+            const phoneInput = document.getElementById('safe-phone');
             const addressInput = document.getElementById('safe-address');
             const status = document.getElementById('safe-form-status');
-            const name = nameInput.value.trim();
-            const address = addressInput.value.trim();
+            const submitBtn = safeForm.querySelector('button[type="submit"]');
 
-            if (!name || !address) return;
-            if (!getCurrentUserEmail()) {
+            const nombre = nameInput.value.trim();
+            const telefono = phoneInput ? phoneInput.value.trim() : '';
+            const direccion = addressInput.value.trim();
+
+            if (!nombre || !direccion) return;
+            if (!getCurrentUser()) {
                 status.textContent = '❌ Debes iniciar sesión primero';
                 status.className = 'form-hint error';
                 return;
             }
 
-            status.textContent = '🔍 Buscando dirección...';
+            status.textContent = '🔍 Buscando la dirección en el mapa...';
             status.className = 'form-hint';
+            if (submitBtn) submitBtn.disabled = true;
+
+            // Si la dirección no se encuentra, igual se guarda el contacto
+            // (sin marcador), para no perder el teléfono de emergencia.
+            let coords = { lat: null, lng: null };
+            let ubicado = true;
+            try {
+                coords = await geocodeAddress(direccion);
+            } catch (geoErr) {
+                ubicado = false;
+            }
 
             try {
-                const geo = await geocodeAddress(address);
-                const locations = getSafeLocations();
-                locations.push({
-                    name,
-                    address: geo.displayName || address,
-                    lat: geo.lat,
-                    lng: geo.lng,
-                    createdAt: Date.now()
-                });
-                saveSafeLocations(locations);
+                await agregarContacto({ nombre, telefono: telefono || null, direccion, lat: coords.lat, lng: coords.lng });
+                await cargarContactos();
 
-                status.textContent = '✅ Ubicación guardada';
+                status.textContent = ubicado
+                    ? '✅ Contacto guardado en tu círculo de confianza'
+                    : '✅ Contacto guardado, pero no pudimos ubicar la dirección en el mapa (prueba con más detalle, incluye el distrito)';
                 status.className = 'form-hint success';
 
-                nameInput.value = '';
-                addressInput.value = '';
-
+                safeForm.reset();
                 renderSafeLocationsList();
                 renderSafeLocationsOnMap();
-
-                setTimeout(() => { status.textContent = ''; }, 2500);
+                setTimeout(() => { status.textContent = ''; }, 4000);
             } catch (err) {
-                status.textContent = `❌ ${err.message}. Intenta con más detalle (distrito incluido).`;
+                console.error(err);
+                status.textContent = '❌ No se pudo guardar el contacto. Intenta de nuevo.';
                 status.className = 'form-hint error';
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
             }
         });
     }
 
-    // Botón "Iniciar sesión" del panel de ubicaciones seguras
     const btnLoginFromSafe = document.getElementById('btn-login-from-safe');
     if (btnLoginFromSafe) {
         btnLoginFromSafe.addEventListener('click', () => {
@@ -344,26 +320,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================
-    // 5. CHAT — EMPÁTICO CON N8N
+    // 4. CHAT — EMPÁTICO CON N8N (+ historial en Supabase)
     // =========================================
     const chatInput = document.getElementById('chat-input');
     const sendChatBtn = document.getElementById('btn-send-chat');
     const chatMessages = document.getElementById('chat-messages');
     const quickRepliesContainer = document.getElementById('quick-replies');
+    const chatMensajeInicialHTML = chatMessages ? chatMessages.innerHTML : '';
 
     const ACTION_MAP = {
         respirar: { label: '🧘 Ir a "Necesito calma"', target: '#respira' },
-        evidencias: { label: '📷 Analizar evidencia', target: '#expediente' },
+        evidencias: { label: '📂 Ir a Mi expediente', target: '#expediente' },
         refugios: { label: '🏠 Ver refugios cercanos', target: '#refugios' },
         alerta: { label: '🚨 Activar alerta de emergencia', target: 'emergency' }
     };
 
-    function addMessage(text, sender, suggestedActions) {
+    function addMessage(text, sender, suggestedActions, fecha) {
         if (!chatMessages) return;
         const msgDiv = document.createElement('div');
         msgDiv.classList.add('message', sender === 'user' ? 'message-user' : 'message-ai');
 
-        const now = new Date();
+        const now = fecha || new Date();
         const timeStr = now.getHours().toString().padStart(2, '0') + ':' +
                         now.getMinutes().toString().padStart(2, '0');
 
@@ -410,6 +387,61 @@ document.addEventListener('DOMContentLoaded', () => {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
+    // --- Historial persistente (solo si hay sesión) ---
+    async function guardarMensajeChat(rol, contenido) {
+        const user = getCurrentUser();
+        if (!user || !contenido) return;
+        const { error } = await supabaseClient
+            .from('chat_mensajes')
+            .insert({ user_id: user.id, rol, contenido: String(contenido).slice(0, 4000) });
+        if (error) console.error('No se pudo guardar el mensaje:', error);
+    }
+
+    let historialCargadoPara = null;
+
+    async function cargarHistorialChat() {
+        const user = getCurrentUser();
+        if (!user || !chatMessages) return;
+        if (historialCargadoPara === user.id) return;
+        historialCargadoPara = user.id;
+
+        const { data, error } = await supabaseClient
+            .from('chat_mensajes')
+            .select('rol, contenido, creado_en')
+            .order('creado_en', { ascending: false })
+            .limit(60);
+
+        if (error) {
+            console.error('Error cargando historial:', error);
+            return;
+        }
+        if (!data || data.length === 0) return;
+
+        const mensajes = data.reverse();
+
+        const separador = document.createElement('div');
+        separador.className = 'chat-history-separator';
+        separador.textContent = 'Tu conversación anterior';
+        chatMessages.appendChild(separador);
+
+        mensajes.forEach(m => {
+            addMessage(m.contenido, m.rol === 'user' ? 'user' : 'ai', null, new Date(m.creado_en));
+            amparaHistory.push({ role: m.rol, content: cleanForHistory(m.contenido) });
+        });
+
+        if (quickRepliesContainer) quickRepliesContainer.style.display = 'none';
+    }
+
+    // Al cerrar sesión se limpia el chat de la pantalla, por si el
+    // dispositivo es compartido (el historial sigue guardado en la cuenta).
+    function limpiarChatEnPantalla() {
+        if (!chatMessages) return;
+        chatMessages.innerHTML = chatMensajeInicialHTML;
+        amparaHistory.length = 0;
+        historialCargadoPara = null;
+        if (quickRepliesContainer) quickRepliesContainer.style.display = '';
+    }
+
     // Fallback local si el webhook falla
     function localFallbackResponse(userMessage) {
         const lower = userMessage.toLowerCase();
@@ -425,19 +457,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return { reply: 'Escúchame: tu seguridad es lo primero. Presiona YA el botón rojo "Necesito ayuda ahora" arriba en la página, y llama al 105 o al 100. Aléjate del lugar o enciérrate donde puedas, y si hay gente cerca, pídeles ayuda. Estoy aquí, no cierres esta conversación.', risk_level: 'alto', suggested_actions: ['alerta'], escalate: true };
         }
         if (digitalHarrassment.test(lower)) {
-            return { reply: 'Gracias por contármelo, no estás sola. Primero: no le respondas nada y no borres los mensajes, porque son tu prueba. Toma capturas de todo (perfil, conversación, número) y guárdalas en la sección Mi expediente, que las deja fuera de tu celular por si él tiene acceso. Después bloquealo y repórtalo en la plataforma. Si quieres, seguimos hablando.', risk_level: 'medio', suggested_actions: ['evidencias'], escalate: false };
+            return { reply: 'Gracias por contármelo, no estás sola. Primero: no le respondas nada y no borres los mensajes, porque son tu prueba. Exporta el chat desde WhatsApp y súbelo a Mi expediente, así queda guardado fuera de tu celular por si él tiene acceso. Después bloquéalo y repórtalo en la plataforma. Si quieres, seguimos hablando.', risk_level: 'medio', suggested_actions: ['evidencias'], escalate: false };
         }
         if (domestic.test(lower)) {
-            return { reply: 'Lamento mucho que estés pasando esto, y quiero que sepas algo importante: no es tu culpa. Lo que describes es violencia, aunque él te diga que exageras. ¿Hay algún lugar donde puedas estar segura ahora, o alguien de confianza a quien puedas escribirle? Si tienes fotos o mensajes, guárdalos en Mi expediente por si los necesitas después. Y si en algún momento sientes peligro, el botón rojo de arriba te conecta al instante. ¿Quieres contarme un poco más?', risk_level: 'medio', suggested_actions: ['evidencias', 'refugios'], escalate: false };
+            return { reply: 'Lamento mucho que estés pasando esto, y quiero que sepas algo importante: no es tu culpa. Lo que describes es violencia, aunque él te diga que exageras. ¿Hay algún lugar donde puedas estar segura ahora, o alguien de confianza a quien puedas escribirle? Si tienes mensajes, guárdalos en Mi expediente por si los necesitas después. Y si en algún momento sientes peligro, el botón rojo de arriba te conecta al instante. ¿Quieres contarme un poco más?', risk_level: 'medio', suggested_actions: ['evidencias', 'refugios'], escalate: false };
         }
         if (acosoCallejero.test(lower)) {
-            return { reply: 'Comprendo, y es normal sentirte así. Si puedes, camina hacia un lugar con más gente (una tienda, un banco, una farmacia) y quédate ahí un momento. Si tienes a alguien de confianza cerca, llámalo y cuéntale dónde estás. Si sientes que te siguen de verdad, activa la alerta con el botón rojo de arriba para que tu contacto de emergencia reciba tu ubicación. ¿Dónde estás ahora?', risk_level: 'medio', suggested_actions: ['alerta', 'refugios'], escalate: false };
+            return { reply: 'Comprendo, y es normal sentirte así. Si puedes, camina hacia un lugar con más gente (una tienda, un banco, una farmacia) y quédate ahí un momento. Si tienes a alguien de confianza cerca, llámalo y cuéntale dónde estás. Si sientes que te siguen de verdad, activa la alerta con el botón rojo de arriba. ¿Dónde estás ahora?', risk_level: 'medio', suggested_actions: ['alerta', 'refugios'], escalate: false };
         }
         if (incomodidad.test(lower)) {
-            return { reply: 'Comprendo, no estás sola. ¿Hay algún lugar con más gente o recepción donde puedas estar mientras decides? Si quieres, activamos la Alerta de Ampara para que tu contacto de emergencia venga por ti con tu ubicación. ¿Lo hacemos?', risk_level: 'medio', suggested_actions: ['alerta'], escalate: false };
+            return { reply: 'Comprendo, no estás sola. ¿Hay algún lugar con más gente o recepción donde puedas estar mientras decides? Si quieres, activamos la Alerta de Ampara para que llames rápido a alguien de tu círculo de confianza. ¿Lo hacemos?', risk_level: 'medio', suggested_actions: ['alerta'], escalate: false };
         }
         if (mediumRisk.test(lower)) {
-            return { reply: 'Gracias por confiarme esto, entiendo que no es fácil. ¿Hay algún lugar donde te sientas más segura ahora mismo? Guarda cualquier mensaje, captura o audio que tengas en Mi expediente, y si quieres revisa los refugios y líneas de ayuda cercanas. Si la situación empeora, el botón rojo de arriba activa ayuda de inmediato. ¿Quieres contarme un poco más?', risk_level: 'medio', suggested_actions: ['evidencias', 'refugios'], escalate: false };
+            return { reply: 'Gracias por confiarme esto, entiendo que no es fácil. ¿Hay algún lugar donde te sientas más segura ahora mismo? Guarda cualquier mensaje que tengas en Mi expediente, y si quieres revisa los refugios y líneas de ayuda cercanas. Si la situación empeora, el botón rojo de arriba activa ayuda de inmediato. ¿Quieres contarme un poco más?', risk_level: 'medio', suggested_actions: ['evidencias', 'refugios'], escalate: false };
         }
         if (lowRisk.test(lower)) {
             return { reply: 'Tiene sentido sentirte así, y me alegra que me lo cuentes. ¿Quieres contarme un poco más de lo que pasó? Estoy aquí contigo. Si te ayuda, prueba respirar lento unos momentos en la sección Necesito calma.', risk_level: 'bajo', suggested_actions: ['respirar'], escalate: false };
@@ -476,8 +508,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.error('⚠️ El webhook respondió pero sin campo "reply". Payload recibido:', data);
                     throw new Error('Respuesta del webhook sin campo "reply"');
                 }
-                amparaHistory.push({ role: 'user', content: cleanForHistory(userMessage) });
-                amparaHistory.push({ role: 'assistant', content: cleanForHistory(data.reply) });
                 return {
                     reply: data.reply,
                     risk_level: data.risk_level || 'bajo',
@@ -497,7 +527,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const minDelay = new Promise(resolve => setTimeout(resolve, 900));
         const [result] = await Promise.all([getAIResponse(userMessage), minDelay]);
         if (typingDiv) typingDiv.remove();
+
+        amparaHistory.push({ role: 'user', content: cleanForHistory(userMessage) });
+        amparaHistory.push({ role: 'assistant', content: cleanForHistory(result.reply) });
+
         addMessage(result.reply, 'ai', result.suggested_actions);
+        guardarMensajeChat('assistant', result.reply);
+
         if (result.escalate) {
             openEmergencyModal();
         }
@@ -507,6 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!text || !text.trim()) return;
         if (quickRepliesContainer) quickRepliesContainer.style.display = 'none';
         addMessage(text, 'user');
+        guardarMensajeChat('user', text);
         if (chatInput) chatInput.value = '';
         simulateAIResponse(text);
     }
@@ -523,7 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // =========================================
-    // 6. EJERCICIO DE RESPIRACIÓN
+    // 5. EJERCICIO DE RESPIRACIÓN
     // =========================================
     const breathingCircle = document.getElementById('breathing-circle');
     const breathingText = document.getElementById('breathing-text');
@@ -575,7 +612,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================
-    // 7. GEOLOCALIZACIÓN, MAPA Y RENDERIZADO
+    // 6. GEOLOCALIZACIÓN, MAPA Y RENDERIZADO
     // =========================================
     let map;
     let userMarker;
@@ -639,6 +676,9 @@ document.addEventListener('DOMContentLoaded', () => {
         userMarker = L.circleMarker([userLat, userLng], {
             color: '#520A5B', fillColor: '#520A5B', fillOpacity: 0.5, radius: 8
         }).addTo(map).bindPopup('Tu ubicación actual').openPopup();
+
+        // Si los contactos ya se cargaron antes que el mapa, pintarlos ahora
+        renderSafeLocationsOnMap();
     }
 
     function updateShelterUI(userLat, userLng, isFallback = false) {
@@ -711,11 +751,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function initGeolocation() {
         if (!navigator.geolocation) {
             if (mapStatus) mapStatus.textContent = 'Geolocalización no soportada.';
+            updateShelterUI(-12.046374, -77.042793, true);
             return;
         }
         navigator.geolocation.getCurrentPosition(
             (position) => updateShelterUI(position.coords.latitude, position.coords.longitude, false),
-            (error) => {
+            () => {
                 console.warn('⚠️ Permiso denegado. Usando ubicación por defecto (Lima).');
                 updateShelterUI(-12.046374, -77.042793, true);
             },
@@ -724,7 +765,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================
-    // 8. FILTROS, BÚSQUEDA, BANNER Y UBICACIONES SEGURAS
+    // 7. FILTROS, BÚSQUEDA, BANNER Y CÍRCULO DE CONFIANZA
     // =========================================
     const chips = document.querySelectorAll('.chip');
     const btnLoadMore = document.getElementById('btn-load-more');
@@ -737,18 +778,16 @@ document.addEventListener('DOMContentLoaded', () => {
     let categoriaActiva = 'casas-hogar';
     let terminoBusqueda = '';
 
-    // Textos del banner informativo por categoría
     const CATEGORY_INFO = {
         'casas-hogar': '<strong>Centros de Emergencia Mujer (CEM):</strong> servicios gratuitos del MIMP que brindan atención legal, psicológica y social a mujeres víctimas de violencia. Hay más de 60 en Lima Metropolitana.',
         'comisarias': '<strong>Comisarías PNP:</strong> puedes denunciar violencia familiar en cualquier comisaría del país. Si estás en peligro, llama al 105 o al 100. Estas son las más cercanas a ti.',
         'otros': '<strong>Otros recursos:</strong> Defensoría del Pueblo, Fiscalía de Familia, UDAVIT, hospitales y líneas de apoyo adicionales que complementan la protección.',
-        'seguras': '<strong>Ubicaciones seguras:</strong> guarda casas de familiares, amistades o lugares de confianza. Solo tú las verás, y aparecerán en el mapa para llegar rápido cuando lo necesites.'
+        'seguras': '<strong>Círculo de confianza:</strong> guarda a familiares o amistades con su teléfono y dirección. Solo tú los verás, aparecerán en el mapa y podrás llamarlos directo desde el botón de emergencia.'
     };
 
     function aplicarFiltroYPaginacion() {
         const todasLasCards = Array.from(document.querySelectorAll('.place-card'));
 
-        // Actualizar banner informativo
         if (infoText && CATEGORY_INFO[categoriaActiva]) {
             infoText.innerHTML = CATEGORY_INFO[categoriaActiva];
             if (infoBanner) infoBanner.hidden = false;
@@ -756,26 +795,24 @@ document.addEventListener('DOMContentLoaded', () => {
             infoBanner.hidden = true;
         }
 
-        // Mostrar/ocultar panel de ubicaciones seguras
         if (safePanel) {
             safePanel.hidden = (categoriaActiva !== 'seguras');
         }
 
-        // Si es "seguras", renderizar el panel y salir (no hay cards)
         if (categoriaActiva === 'seguras') {
             renderSafeLocationsPanel();
             todasLasCards.forEach(card => card.style.display = 'none');
             if (btnLoadMore) btnLoadMore.style.display = 'none';
+            const noRes = document.getElementById('no-results-msg');
+            if (noRes) noRes.hidden = true;
             if (map) map.invalidateSize();
             return;
         }
 
-        // Filtrar por categoría
         let cardsFiltradas = todasLasCards.filter(card =>
             card.getAttribute('data-category') === categoriaActiva
         );
 
-        // Filtrar por término de búsqueda
         if (terminoBusqueda.trim() !== '') {
             const termino = terminoBusqueda.toLowerCase().trim();
             cardsFiltradas = cardsFiltradas.filter(card => {
@@ -790,7 +827,6 @@ document.addEventListener('DOMContentLoaded', () => {
             card.style.display = 'flex';
         });
 
-        // Mensaje sin resultados
         let noResults = document.getElementById('no-results-msg');
         if (cardsFiltradas.length === 0) {
             if (!noResults) {
@@ -805,7 +841,6 @@ document.addEventListener('DOMContentLoaded', () => {
             noResults.hidden = true;
         }
 
-        // Botón cargar más
         if (btnLoadMore) {
             if (cardsFiltradas.length > cardsMostradas) {
                 btnLoadMore.style.display = 'inline-flex';
@@ -819,7 +854,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (map) map.invalidateSize();
     }
 
-    // Click en cada chip
     chips.forEach(chip => {
         chip.addEventListener('click', () => {
             chips.forEach(c => c.classList.remove('active'));
@@ -830,7 +864,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Búsqueda con debounce
     let searchTimeout;
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
@@ -852,13 +885,36 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Cargar más
     if (btnLoadMore) {
         btnLoadMore.addEventListener('click', () => {
             cardsMostradas += CARDS_POR_PAGINA;
             aplicarFiltroYPaginacion();
         });
     }
+
+    // =========================================
+    // 8. REACCIONAR A LOGIN / LOGOUT
+    // =========================================
+    let ultimoUsuarioId = null;
+
+    async function alCambiarSesion() {
+        const user = getCurrentUser();
+        const nuevoId = user ? user.id : null;
+
+        // Cerró sesión: limpiar todo lo personal de la pantalla
+        if (!nuevoId && ultimoUsuarioId) {
+            limpiarChatEnPantalla();
+        }
+        ultimoUsuarioId = nuevoId;
+
+        await cargarContactos();
+        renderSafeLocationsOnMap();
+        if (categoriaActiva === 'seguras') renderSafeLocationsPanel();
+
+        if (nuevoId) await cargarHistorialChat();
+    }
+
+    document.addEventListener('ampara:auth-changed', alCambiarSesion);
 
     // =========================================
     // INICIALIZACIÓN
@@ -870,6 +926,9 @@ document.addEventListener('DOMContentLoaded', () => {
         aplicarFiltroYPaginacion();
     }, 200);
 
+    // Si auth.js ya resolvió la sesión antes de que este archivo cargara
+    if (window.amparaAuth && window.amparaAuth.ready) alCambiarSesion();
+
     console.log('%c🛡️ Ampara AI', 'color: #520A5B; font-size: 20px; font-weight: bold;');
     console.log('%cSitio web iniciado correctamente.', 'color: #6D8A68;');
-});
+}); 

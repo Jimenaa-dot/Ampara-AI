@@ -244,7 +244,7 @@
                     <button class="chip" role="tab" data-filter="comisarias">Comisarías</button>
                     <button class="chip" role="tab" data-filter="otros">Otros recursos</button>
                     <button class="chip" role="tab" data-filter="seguras">
-                        <i class="fas fa-shield-heart"></i> Ubicaciones seguras
+                        <i class="fas fa-shield-heart"></i> Círculo de confianza
                     </button>
                 </div>
 
@@ -259,19 +259,20 @@
                     <!-- Estado NO logueado -->
                     <div class="safe-locations-login-prompt" id="safe-locations-login-prompt">
                         <i class="fas fa-lock" aria-hidden="true"></i>
-                        <h3>Inicia sesión para guardar tus ubicaciones seguras</h3>
-                        <p>Guarda casas de familiares, amistades o lugares de confianza para llegar rápido a ellos cuando lo necesites.</p>
+                        <h3>Inicia sesión para armar tu círculo de confianza</h3>
+                        <p>Guarda a familiares o amistades con su teléfono y dirección. Aparecerán en el mapa y podrás llamarlos directo desde el botón de emergencia.</p>
                         <button class="btn btn-primary" id="btn-login-from-safe">
                             <i class="fas fa-user-circle"></i> Iniciar sesión
                         </button>
                     </div>
-
+                
                     <!-- Estado logueado: formulario + lista -->
                     <div class="safe-locations-content" id="safe-locations-content" hidden>
                         <form class="safe-location-form" id="safe-location-form">
-                            <h3><i class="fas fa-plus-circle"></i> Agregar ubicación segura</h3>
+                            <h3><i class="fas fa-plus-circle"></i> Agregar persona de confianza</h3>
                             <div class="form-row">
-                                <input type="text" id="safe-name" placeholder="Nombre (ej. Casa de mamá)" required>
+                                <input type="text" id="safe-name" placeholder="Nombre (ej. Mamá)" required>
+                                <input type="tel" id="safe-phone" placeholder="Teléfono (ej. 987654321)">
                                 <input type="text" id="safe-address" placeholder="Dirección (ej. Av. Aviación 1234, San Borja)" required>
                                 <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-check"></i> Guardar
@@ -279,9 +280,7 @@
                             </div>
                             <p class="form-hint" id="safe-form-status"></p>
                         </form>
-                        <div class="safe-locations-list" id="safe-locations-list">
-                            <!-- Se llena dinámicamente -->
-                        </div>
+                        <div class="safe-locations-list" id="safe-locations-list"></div>
                     </div>
                 </div>
 
@@ -347,6 +346,10 @@
                     <div class="text">Evaluación de riesgo</div>
                     <div class="status-text">En proceso...</div>
                 </div>
+            </div>
+            <div id="emergency-contacts" class="emergency-contacts" hidden>
+                 <p class="emergency-contacts-title">Tu círculo de confianza</p>
+                <div id="emergency-contacts-list"></div>
             </div>
 
             <button id="btn-cancel-alert" class="btn btn-white btn-block">Cancelar alerta</button>

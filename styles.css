@@ -1355,3 +1355,23 @@ img { max-width: 100%; display: block; }
     color: #E8B8F0;
     border-color: #E8B8F0 !important;
 }
+
+.emergency-contacts { margin-bottom: 20px; text-align: left; }
+.emergency-contacts-title { font-size: 13px; font-weight: 600; color: var(--purple-dark); margin-bottom: 10px !important; }
+#emergency-contacts-list { display: flex; flex-direction: column; gap: 8px; }
+.emergency-contact-btn {
+    display: flex; align-items: center; gap: 10px;
+    background: white; color: var(--purple-dark);
+    border: 1.5px solid var(--purple-main); border-radius: var(--radius-sm);
+    padding: 12px 16px; font-weight: 600; font-size: 14px; text-decoration: none;
+}
+.emergency-contact-btn:hover { background: #fbf7ff; }
+.emergency-contact-btn i { color: var(--purple-main); }
+ 
+.chat-history-separator {
+    align-self: center; font-size: 11px; color: var(--text-secondary);
+    background: #f3f4f6; padding: 4px 12px; border-radius: 12px; margin: 6px 0;
+}
+ 
+.safe-info span { display: block; font-size: 12px; color: var(--text-secondary); }
+a.btn-go { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
