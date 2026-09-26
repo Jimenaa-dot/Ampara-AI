@@ -6,7 +6,50 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     'use strict';
+            // =========================================
+    // 0.1. MODO OSCURO / CLARO
+    // =========================================
+    const btnThemeToggle = document.getElementById('btn-theme-toggle');
+    const rootElement = document.documentElement;
 
+    // Leer preferencia guardada o la del sistema
+    function getPreferredTheme() {
+        const saved = localStorage.getItem('ampara_theme');
+        if (saved === 'dark' || saved === 'light') return saved;
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    // Aplicar tema
+    function applyTheme(theme) {
+        rootElement.setAttribute('data-theme', theme);
+        localStorage.setItem('ampara_theme', theme);
+        if (btnThemeToggle) {
+            const icon = btnThemeToggle.querySelector('i');
+            if (icon) {
+                icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+            btnThemeToggle.setAttribute('aria-label',
+                theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
+        }
+    }
+
+    // Inicializar
+    applyTheme(getPreferredTheme());
+
+    // Toggle al hacer clic
+    if (btnThemeToggle) {
+        btnThemeToggle.addEventListener('click', () => {
+            const current = rootElement.getAttribute('data-theme');
+            applyTheme(current === 'dark' ? 'light' : 'dark');
+        });
+    }
+
+    // Escuchar cambios de preferencia del sistema
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (!localStorage.getItem('ampara_theme')) {
+            applyTheme(e.matches ? 'dark' : 'light');
+        }
+    });
     // =========================================
     // 0. CONFIGURACIÓN
     // =========================================
@@ -220,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     await borrarContacto(c.id);
                     await cargarContactos();
                     renderSafeLocationsList();
-                    renderSafeLocationsOnMap();
+                    refrescarContactosUI();
                 } catch (err) {
                     console.error(err);
                     alert('No se pudo eliminar el contacto.');
@@ -246,10 +289,65 @@ document.addEventListener('DOMContentLoaded', () => {
                 iconAnchor: [12, 24]
             });
             const marker = L.marker([c.lat, c.lng], { icon })
-                .addTo(map)
                 .bindPopup(`<b>🛡️ ${escapeHTML(c.nombre)}</b><br><small>${escapeHTML(c.direccion)}</small>${c.telefono ? `<br><a href="tel:${escapeHTML(c.telefono)}">📞 ${escapeHTML(c.telefono)}</a>` : ''}`);
             safeMarkers.push(marker);
         });
+
+        actualizarMarcadoresMapa(false);
+    }
+
+    // Muestra en el mapa solo los marcadores de la categoría activa
+    // (o todos si el chip activo es "Todos").
+    function actualizarMarcadoresMapa(ajustarVista = true) {
+        if (!map) return;
+        const mostrarTodo = categoriaActiva === 'todos';
+        const visibles = [];
+
+        shelterMarkers.forEach(({ marker, categoria }) => {
+            if (mostrarTodo || categoria === categoriaActiva) {
+                if (!map.hasLayer(marker)) marker.addTo(map);
+                visibles.push(marker.getLatLng());
+            } else if (map.hasLayer(marker)) {
+                map.removeLayer(marker);
+            }
+        });
+
+        const mostrarContactos = mostrarTodo || categoriaActiva === 'seguras';
+        safeMarkers.forEach(marker => {
+            if (mostrarContactos) {
+                if (!map.hasLayer(marker)) marker.addTo(map);
+                visibles.push(marker.getLatLng());
+            } else if (map.hasLayer(marker)) {
+                map.removeLayer(marker);
+            }
+        });
+
+        if (ajustarVista && visibles.length > 0) {
+            if (userMarker) visibles.push(userMarker.getLatLng());
+            map.fitBounds(L.latLngBounds(visibles), { padding: [30, 30], maxZoom: 14 });
+        }
+    }
+
+    // Guarda un contacto (intenta ubicar la dirección en el mapa primero).
+    // Lo usan tanto el formulario del mapa como el modal de contactos.
+    async function guardarContactoCompleto({ nombre, telefono, direccion }) {
+        let coords = { lat: null, lng: null };
+        let ubicado = true;
+        try {
+            coords = await geocodeAddress(direccion);
+        } catch (geoErr) {
+            ubicado = false;
+        }
+        await agregarContacto({ nombre, telefono: telefono || null, direccion, lat: coords.lat, lng: coords.lng });
+        await cargarContactos();
+        refrescarContactosUI();
+        return ubicado;
+    }
+
+    function refrescarContactosUI() {
+        if (categoriaActiva === 'seguras') renderSafeLocationsList();
+        renderSafeLocationsOnMap();
+        renderContactsModal();
     }
 
     const safeForm = document.getElementById('safe-location-form');
@@ -277,19 +375,10 @@ document.addEventListener('DOMContentLoaded', () => {
             status.className = 'form-hint';
             if (submitBtn) submitBtn.disabled = true;
 
-            // Si la dirección no se encuentra, igual se guarda el contacto
-            // (sin marcador), para no perder el teléfono de emergencia.
-            let coords = { lat: null, lng: null };
-            let ubicado = true;
             try {
-                coords = await geocodeAddress(direccion);
-            } catch (geoErr) {
-                ubicado = false;
-            }
-
-            try {
-                await agregarContacto({ nombre, telefono: telefono || null, direccion, lat: coords.lat, lng: coords.lng });
-                await cargarContactos();
+                // Si la dirección no se encuentra, igual se guarda el contacto
+                // (sin marcador), para no perder el teléfono de emergencia.
+                const ubicado = await guardarContactoCompleto({ nombre, telefono, direccion });
 
                 status.textContent = ubicado
                     ? '✅ Contacto guardado en tu círculo de confianza'
@@ -298,7 +387,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 safeForm.reset();
                 renderSafeLocationsList();
-                renderSafeLocationsOnMap();
                 setTimeout(() => { status.textContent = ''; }, 4000);
             } catch (err) {
                 console.error(err);
@@ -315,6 +403,129 @@ document.addEventListener('DOMContentLoaded', () => {
         btnLoginFromSafe.addEventListener('click', () => {
             if (window.amparaAuth && window.amparaAuth.abrirModalLogin) {
                 window.amparaAuth.abrirModalLogin();
+            }
+        });
+    }
+
+    // =========================================
+    // 3.1. MODAL "CONTACTOS DE EMERGENCIA"
+    // (misma lista que el círculo de confianza, guardada en Supabase)
+    // =========================================
+    const contactsModal = document.getElementById('contacts-modal');
+    const contactForm = document.getElementById('contact-form');
+
+    function renderContactsModal() {
+        const prompt = document.getElementById('contacts-login-prompt');
+        const content = document.getElementById('contacts-content');
+        const list = document.getElementById('contacts-list');
+        const noMsg = document.getElementById('no-contacts-msg');
+        if (!prompt || !content || !list) return;
+
+        if (!getCurrentUser()) {
+            prompt.hidden = false;
+            content.hidden = true;
+            return;
+        }
+        prompt.hidden = true;
+        content.hidden = false;
+
+        list.innerHTML = '';
+        if (noMsg) noMsg.hidden = contactosCache.length > 0;
+
+        contactosCache.forEach(c => {
+            const li = document.createElement('li');
+            li.className = 'contact-item';
+            li.innerHTML = `
+                <div class="contact-info">
+                    <span class="contact-name">${escapeHTML(c.nombre)}</span>
+                    ${c.telefono ? `<span class="contact-phone"><i class="fas fa-phone" aria-hidden="true"></i> ${escapeHTML(c.telefono)}</span>` : ''}
+                    <span class="contact-address"><i class="fas fa-location-dot" aria-hidden="true"></i> ${escapeHTML(c.direccion)}${(c.lat && c.lng) ? '' : ' (no ubicada en el mapa)'}</span>
+                </div>
+                <div class="contact-actions">
+                    ${c.telefono ? `<a class="btn-call-contact" href="tel:${escapeHTML(c.telefono)}" title="Llamar"><i class="fas fa-phone"></i></a>` : ''}
+                    <button type="button" class="btn-delete-contact" title="Eliminar"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+            li.querySelector('.btn-delete-contact').addEventListener('click', async () => {
+                if (!confirm(`¿Eliminar a "${c.nombre}" de tus contactos de emergencia?`)) return;
+                try {
+                    await borrarContacto(c.id);
+                    await cargarContactos();
+                    refrescarContactosUI();
+                } catch (err) {
+                    console.error(err);
+                    alert('No se pudo eliminar el contacto.');
+                }
+            });
+            list.appendChild(li);
+        });
+    }
+
+    function openContactsModal(e) {
+        if (e) e.preventDefault();
+        renderContactsModal();
+        if (contactsModal) contactsModal.hidden = false;
+    }
+    function closeContactsModal() {
+        if (contactsModal) contactsModal.hidden = true;
+    }
+
+    ['nav-add-contact', 'btn-add-contact'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('click', openContactsModal);
+    });
+
+    const btnCloseContacts = document.getElementById('btn-close-contacts');
+    if (btnCloseContacts) btnCloseContacts.addEventListener('click', closeContactsModal);
+    if (contactsModal) {
+        contactsModal.addEventListener('click', (e) => {
+            if (e.target === contactsModal) closeContactsModal();
+        });
+    }
+
+    const btnLoginFromContacts = document.getElementById('btn-login-from-contacts');
+    if (btnLoginFromContacts) {
+        btnLoginFromContacts.addEventListener('click', () => {
+            closeContactsModal();
+            if (window.amparaAuth && window.amparaAuth.abrirModalLogin) {
+                window.amparaAuth.abrirModalLogin();
+            }
+        });
+    }
+
+    if (contactForm) {
+        contactForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nombre = document.getElementById('contact-name').value.trim();
+            const telefono = document.getElementById('contact-phone').value.trim();
+            const direccion = document.getElementById('contact-address').value.trim();
+            const status = document.getElementById('contact-form-status');
+            const submitBtn = document.getElementById('btn-save-contact');
+
+            if (!nombre || !telefono || !direccion) return;
+            if (!getCurrentUser()) {
+                renderContactsModal();
+                return;
+            }
+
+            if (status) { status.textContent = '🔍 Guardando y ubicando la dirección...'; status.className = 'form-hint'; }
+            if (submitBtn) submitBtn.disabled = true;
+
+            try {
+                const ubicado = await guardarContactoCompleto({ nombre, telefono, direccion });
+                contactForm.reset();
+                if (status) {
+                    status.textContent = ubicado
+                        ? '✅ Contacto guardado. Ya aparece en el mapa y en el botón de emergencia.'
+                        : '✅ Contacto guardado, pero no pudimos ubicar la dirección en el mapa (incluye el distrito).';
+                    status.className = 'form-hint success';
+                    setTimeout(() => { status.textContent = ''; }, 4000);
+                }
+            } catch (err) {
+                console.error(err);
+                if (status) { status.textContent = '❌ No se pudo guardar el contacto. Intenta de nuevo.'; status.className = 'form-hint error'; }
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
             }
         });
     }
@@ -690,7 +901,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         initMap(userLat, userLng);
 
-        shelterMarkers.forEach(marker => map.removeLayer(marker));
+        shelterMarkers.forEach(m => map.removeLayer(m.marker));
         shelterMarkers = [];
 
         let closestDistance = Infinity;
@@ -707,9 +918,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dist = calculateDistance(userLat, userLng, lat, lng);
                 distanceEl.textContent = `A ${dist.toFixed(1)} km`;
 
-                const marker = L.marker([lat, lng]).addTo(map)
+                const marker = L.marker([lat, lng])
                     .bindPopup(`<b>${card.querySelector('.place-title').textContent}</b><br>${card.querySelector('.place-desc').textContent}`);
-                shelterMarkers.push(marker);
+                shelterMarkers.push({ marker, categoria: card.getAttribute('data-category') });
 
                 if (routeBtn) {
                     routeBtn.onclick = (e) => {
@@ -746,6 +957,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 titleEl.appendChild(badge);
             }
         }
+
+        actualizarMarcadoresMapa(true);
     }
 
     function initGeolocation() {
@@ -779,6 +992,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let terminoBusqueda = '';
 
     const CATEGORY_INFO = {
+        'todos': '<strong>Todos los recursos:</strong> CEM, comisarías, otros servicios y tu círculo de confianza en un solo mapa.',
         'casas-hogar': '<strong>Centros de Emergencia Mujer (CEM):</strong> servicios gratuitos del MIMP que brindan atención legal, psicológica y social a mujeres víctimas de violencia. Hay más de 60 en Lima Metropolitana.',
         'comisarias': '<strong>Comisarías PNP:</strong> puedes denunciar violencia familiar en cualquier comisaría del país. Si estás en peligro, llama al 105 o al 100. Estas son las más cercanas a ti.',
         'otros': '<strong>Otros recursos:</strong> Defensoría del Pueblo, Fiscalía de Familia, UDAVIT, hospitales y líneas de apoyo adicionales que complementan la protección.',
@@ -805,13 +1019,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (btnLoadMore) btnLoadMore.style.display = 'none';
             const noRes = document.getElementById('no-results-msg');
             if (noRes) noRes.hidden = true;
+            actualizarMarcadoresMapa(true);
             if (map) map.invalidateSize();
             return;
         }
 
-        let cardsFiltradas = todasLasCards.filter(card =>
-            card.getAttribute('data-category') === categoriaActiva
-        );
+        let cardsFiltradas = (categoriaActiva === 'todos')
+            ? todasLasCards
+            : todasLasCards.filter(card => card.getAttribute('data-category') === categoriaActiva);
 
         if (terminoBusqueda.trim() !== '') {
             const termino = terminoBusqueda.toLowerCase().trim();
@@ -851,6 +1066,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        actualizarMarcadoresMapa(true);
         if (map) map.invalidateSize();
     }
 
@@ -909,6 +1125,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         await cargarContactos();
         renderSafeLocationsOnMap();
+        renderContactsModal();
         if (categoriaActiva === 'seguras') renderSafeLocationsPanel();
 
         if (nuevoId) await cargarHistorialChat();
@@ -931,4 +1148,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     console.log('%c🛡️ Ampara AI', 'color: #520A5B; font-size: 20px; font-weight: bold;');
     console.log('%cSitio web iniciado correctamente.', 'color: #6D8A68;');
-}); 
+});

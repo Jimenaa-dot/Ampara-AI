@@ -39,8 +39,9 @@
             <nav class="main-nav" id="main-nav" aria-label="Navegación principal">
                 <a href="#expediente">Mi expediente</a>
                 <a href="#chat">Habla con Ampara</a>
-                <a href="#refugios">Refugios cercanos</a>
+                <a href="#refugios">Encuentra ayuda</a>
                 <a href="#respira">Respira</a>
+                <a href="#" id="nav-add-contact">Contactos de emergencia</a>
             </nav>
 
                         <div class="header-actions">
@@ -112,7 +113,7 @@
         <section class="features" aria-label="Cómo te acompaña Ampara AI">
             <div class="section-inner">
                 <h2>Cómo te acompañamos</h2>
-                <p class="section-lead">Cuatro formas de ayuda, disponibles cuando las necesites.</p>
+                <p class="section-lead">Cinco formas de ayuda, disponibles cuando las necesites.</p>
 
                 <div class="features-grid">
                     <a href="#chat" class="feature-card feature-card-lg">
@@ -127,13 +128,18 @@
                     </a>
                     <a href="#refugios" class="feature-card">
                         <i class="fas fa-map-location-dot" aria-hidden="true"></i>
-                        <h3>Refugios y ayuda cerca</h3>
-                        <p>Encuentra casas de acogida y líneas de ayuda cerca de tu ubicación.</p>
+                        <h3>Encuentra ayuda cerca</h3>
+                        <p>Ubica CEM, comisarías y recursos de apoyo cerca de tu ubicación.</p>
                     </a>
                     <a href="#respira" class="feature-card">
                         <i class="fas fa-spa" aria-hidden="true"></i>
                         <h3>Necesito calma</h3>
                         <p>Un ejercicio de respiración guiado para momentos de mucha ansiedad.</p>
+                    </a>
+                    <a href="#" class="feature-card" id="btn-add-contact">
+                        <i class="fas fa-address-book" aria-hidden="true"></i>
+                        <h3>Agregar contacto de emergencia</h3>
+                        <p>Guarda a alguien de confianza para llamarle con un toque si activas una alerta.</p>
                     </a>
                 </div>
             </div>
@@ -231,7 +237,7 @@
              ========================================= -->
                 <section id="refugios" class="section-block">
             <div class="section-inner">
-                <p class="eyebrow">Refugios y ayuda cerca</p>
+                <p class="eyebrow">Recursos cerca de ti</p>
                 <h2>Encuentra ayuda cerca de ti</h2>
 
                 <div class="search-bar">
@@ -240,6 +246,7 @@
                 </div>
 
                 <div class="filter-chips" role="tablist">
+                    <button class="chip" role="tab" data-filter="todos"><i class="fas fa-layer-group"></i> Todos</button>
                     <button class="chip active" role="tab" data-filter="casas-hogar">CEM</button>
                     <button class="chip" role="tab" data-filter="comisarias">Comisarías</button>
                     <button class="chip" role="tab" data-filter="otros">Otros recursos</button>
@@ -382,6 +389,61 @@
             </form>
             <div class="auth-footer">
                 <p>¿No tienes cuenta? <a href="#" id="link-register">Regístrate aquí</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================
+         MODAL: CONTACTOS DE EMERGENCIA
+         (usa la misma lista que el "Círculo de confianza" del mapa)
+         ========================================= -->
+    <div class="modal-overlay" id="contacts-modal" hidden>
+        <div class="modal-card contacts-card" role="dialog" aria-modal="true" aria-label="Contactos de emergencia">
+            <button class="modal-close" id="btn-close-contacts" aria-label="Cerrar">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="auth-header">
+                <img src="logo.png" alt="Ampara AI" class="auth-logo">
+                <h2>Contactos de emergencia</h2>
+                <p>Guarda a personas de confianza. Aparecerán en el mapa y podrás llamarlas desde el botón de emergencia.</p>
+            </div>
+
+            <!-- Sin sesión -->
+            <div id="contacts-login-prompt" class="contacts-login-prompt" hidden>
+                <p class="caption" style="text-align:center; margin-bottom:16px;">
+                    <i class="fas fa-lock" aria-hidden="true"></i> Inicia sesión para guardar tus contactos de forma privada.
+                </p>
+                <button type="button" class="btn btn-primary btn-block" id="btn-login-from-contacts">
+                    <i class="fas fa-user-circle"></i> Iniciar sesión
+                </button>
+            </div>
+
+            <!-- Con sesión -->
+            <div id="contacts-content" hidden>
+                <form id="contact-form" class="auth-form">
+                    <div class="form-group">
+                        <label for="contact-name">Nombre</label>
+                        <input type="text" id="contact-name" placeholder="Ej. Mamá, Ana, Vecina" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="contact-phone">Número de teléfono</label>
+                        <input type="tel" id="contact-phone" placeholder="Ej. 987654321" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="contact-address">Dirección</label>
+                        <input type="text" id="contact-address" placeholder="Ej. Av. Aviación 1234, San Borja" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block" id="btn-save-contact">
+                        <i class="fas fa-plus-circle"></i> Agregar contacto
+                    </button>
+                    <p class="form-hint" id="contact-form-status"></p>
+                </form>
+
+                <div class="contacts-list-wrapper">
+                    <h4>Contactos guardados</h4>
+                    <ul id="contacts-list" class="contacts-list"></ul>
+                    <p id="no-contacts-msg" class="caption" style="text-align: center; margin-top: 10px;">Aún no tienes contactos guardados.</p>
+                </div>
             </div>
         </div>
     </div>
