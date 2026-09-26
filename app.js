@@ -35,28 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================
-    // 1. SALIDA RÁPIDA
-    // =========================================
-    const btnQuickExit = document.getElementById('btn-quick-exit');
-    if (btnQuickExit) {
-        btnQuickExit.addEventListener('click', () => {
-            window.location.replace('https://www.google.com');
-        });
-    }
-
-    let escCount = 0;
-    let escTimer = null;
-    document.addEventListener('keydown', (e) => {
-        if (e.key !== 'Escape') return;
-        escCount++;
-        clearTimeout(escTimer);
-        escTimer = setTimeout(() => { escCount = 0; }, 1200);
-        if (escCount >= 3) {
-            window.location.replace('https://www.google.com');
-        }
-    });
-
-    // =========================================
     // 2. MENÚ MÓVIL
     // =========================================
     const navToggle = document.getElementById('nav-toggle');

@@ -1,3 +1,4 @@
+
 /* =========================================
    1. VARIABLES
    ========================================= */
@@ -92,6 +93,7 @@ img { max-width: 100%; display: block; }
     font-size: 14px;
     cursor: pointer;
     transition: var(--transition-smooth);
+    white-space: nowrap;
 }
 .btn-sos:hover { background: #d63c3c; }
 
@@ -110,28 +112,9 @@ img { max-width: 100%; display: block; }
     cursor: pointer;
     transition: var(--transition-smooth);
     font-family: var(--font-body);
+    white-space: nowrap;
 }
 .btn-auth:hover { background: rgba(82,10,91,0.06); border-color: var(--purple-main); }
-
-/* =========================================
-   4. SALIDA RÁPIDA (siempre visible)
-   ========================================= */
-.quick-exit {
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    z-index: 1000;
-    background: rgba(44, 62, 53, 0.85);
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: var(--radius-btn);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    backdrop-filter: blur(4px);
-}
-.quick-exit:hover { background: var(--text-dark); }
 
 /* =========================================
    5. HEADER
@@ -152,6 +135,8 @@ img { max-width: 100%; display: block; }
     align-items: center;
     justify-content: space-between;
     gap: 24px;
+    flex-wrap: wrap;
+    row-gap: 10px;
 }
 .brand {
     display: flex;
@@ -175,7 +160,7 @@ img { max-width: 100%; display: block; }
 }
 .main-nav a:hover { color: var(--purple-main); }
 
-.header-actions { display: flex; align-items: center; gap: 12px; }
+.header-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 .nav-toggle {
     display: none;
     background: none;
@@ -666,79 +651,80 @@ img { max-width: 100%; display: block; }
     .footer-inner { grid-template-columns: 1fr; text-align: left; }
 }
 
-@media (max-width: 720px) {
-    /* Ajuste del header para evitar que los botones se junten */
-    .header-inner {
-        flex-wrap: wrap;
-        gap: 12px;
-    }
-    .main-nav { 
-        position: fixed; 
-        top: 64px; 
-        left: 0; 
-        right: 0; 
-        background: var(--bg-cream); 
-        flex-direction: column; 
-        padding: 20px 32px; 
-        gap: 18px; 
-        box-shadow: var(--shadow-card); 
-        display: none; 
+/* Laptops/ventanas angostas (~1024px y menos): el menú de texto pasa a
+   menú hamburguesa ANTES de que le falte espacio a los botones de la
+   derecha, para que nunca se aprieten entre sí. */
+@media (max-width: 1100px) {
+    .main-nav {
+        position: fixed;
+        top: 64px;
+        left: 0;
+        right: 0;
+        background: var(--bg-cream);
+        flex-direction: column;
+        padding: 20px 32px;
+        gap: 18px;
+        box-shadow: var(--shadow-card);
+        display: none;
         border-bottom: 1px solid rgba(82,10,91,0.08);
+        z-index: 400;
     }
     .main-nav.open { display: flex; }
     .nav-toggle { display: block; }
-    
-    /* Ajuste para que los botones del header no se peguen */
+}
+
+@media (max-width: 720px) {
+    /* El botón de emergencia se estira para ocupar el espacio libre del
+       header en vez de quedarse chico; los demás se vuelven íconos */
     .header-actions {
         gap: 8px;
+        flex: 1;
     }
-    .btn-sos span, .btn-auth span {
-        display: none; /* Oculta el texto en móviles muy pequeños */
+    .brand {
+        flex-shrink: 0;
     }
-    .btn-sos, .btn-auth {
+    .btn-sos {
+        flex: 1 1 auto;
+        justify-content: center;
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+    .btn-auth, .nav-toggle {
+        flex: 0 0 auto;
+    }
+    /* El texto se oculta en Iniciar sesión, queda solo el ícono;
+       el de emergencia conserva su texto pero con altura reducida */
+    .btn-auth span {
+        display: none;
+    }
+    .btn-auth {
         padding: 10px 12px;
     }
-    
+
     h1 { font-size: 32px; }
     h2 { font-size: 26px; }
     .features-grid { grid-template-columns: 1fr; }
     .trust-inner { flex-direction: column; align-items: flex-start; padding-left: 32px; }
-    
+
     .modal-card { padding: 32px 24px; }
 }
 
-/* Ajuste adicional para pantallas muy pequeñas */
+/* Ajuste adicional para pantallas muy pequeñas: ya no hay espacio para
+   estirar el texto del botón de emergencia sin que se corte en varias
+   líneas, así que aquí vuelve a ser ícono — pero se mantiene más grande
+   que los otros dos */
 @media (max-width: 480px) {
     .header-actions {
         gap: 6px;
+        flex: 0 0 auto;
     }
-    .btn-sos, .btn-auth {
+    .btn-sos {
+        flex: 0 0 auto;
+        padding: 10px 14px;
+        font-size: 13px;
+    }
+    .btn-auth {
         padding: 8px 10px;
-        font-size: 12px;
-    }
-    .quick-exit {
-        top: 12px;
-        right: 12px;
-        padding: 6px 12px;
-        font-size: 12px;
-    }
-}
-
-/* =========================================
-   PASO 4: AJUSTES PARA EL MAPA Y FILTROS
-   ========================================= */
-@media (max-width: 480px) {
-    .header-actions {
-        gap: 6px;
-    }
-    .btn-sos, .btn-auth {
-        padding: 8px 10px;
-        font-size: 12px;
-    }
-    .quick-exit {
-        top: 12px;
-        right: 12px;
-        padding: 6px 12px;
         font-size: 12px;
     }
 }
