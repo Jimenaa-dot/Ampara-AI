@@ -75,115 +75,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================
-    // 4. MODAL DE AUTENTICACIÓN
+    // 4. ESTADO DE SESIÓN (la maneja auth.js con Supabase)
     // =========================================
-    const authModal = document.getElementById('auth-modal');
-    const btnAuth = document.getElementById('btn-auth');
-    const btnCloseAuth = document.getElementById('btn-close-auth');
-    const linkRegister = document.getElementById('link-register');
-    const authForm = document.getElementById('auth-form');
-    const authTitle = authModal ? authModal.querySelector('h2') : null;
-    const authSubtitle = authModal ? authModal.querySelector('.auth-header p') : null;
-    const authSubmitBtn = authForm ? authForm.querySelector('button[type="submit"]') : null;
+    // El modal de login/registro y el botón de la cabecera ya los maneja
+    // auth.js. Aquí solo escuchamos cuándo cambia la sesión para saber
+    // el correo de la usuaria actual y refrescar lo que dependa de eso.
 
-    let isRegisterMode = false;
-
-    function openAuthModal() {
-        if (authModal) authModal.hidden = false;
-        setAuthMode(false);
-    }
-    function closeAuthModal() {
-        if (authModal) authModal.hidden = true;
-    }
-    function setAuthMode(registerMode) {
-        isRegisterMode = registerMode;
-        if (registerMode) {
-            if (authTitle) authTitle.textContent = 'Crea tu cuenta';
-            if (authSubtitle) authSubtitle.textContent = 'Tu espacio seguro comienza aquí.';
-            if (authSubmitBtn) authSubmitBtn.textContent = 'Registrarse';
-            if (linkRegister) linkRegister.textContent = 'Inicia sesión aquí';
-        } else {
-            if (authTitle) authTitle.textContent = 'Bienvenida de nuevo';
-            if (authSubtitle) authSubtitle.textContent = 'Tu espacio seguro te espera.';
-            if (authSubmitBtn) authSubmitBtn.textContent = 'Iniciar sesión';
-            if (linkRegister) linkRegister.textContent = 'Regístrate aquí';
-        }
+    function getCurrentUserEmail() {
+        return (window.amparaAuth && window.amparaAuth.currentUser)
+            ? window.amparaAuth.currentUser.email
+            : null;
     }
 
-    if (btnAuth) btnAuth.addEventListener('click', openAuthModal);
-    if (btnCloseAuth) btnCloseAuth.addEventListener('click', closeAuthModal);
-    if (authModal) {
-        authModal.addEventListener('click', (e) => {
-            if (e.target === authModal) closeAuthModal();
-        });
-    }
-    if (linkRegister) {
-        linkRegister.addEventListener('click', (e) => {
-            e.preventDefault();
-            setAuthMode(!isRegisterMode);
-        });
-    }
-    
-    if (authForm) {
-        authForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = document.getElementById('auth-email').value;
-            const password = document.getElementById('auth-password').value;
-            if (!email || !password) {
-                alert('Por favor, completa todos los campos.');
-                return;
-            }
-            const action = isRegisterMode ? 'Registro' : 'Inicio de sesión';
-            console.log(`%c✅ ${action} exitoso para: ${email}`, 'color: #22C55E; font-weight: bold;');
-            
-            // 💾 Guardar usuario logueado
-            localStorage.setItem('ampara_user', email);
-            actualizarUIUsuario(email);
-            
-            closeAuthModal();
-            authForm.reset();
-            alert(`¡${action} exitoso! Bienvenida, ${email}`);
-            
-            // Refrescar el panel de ubicaciones seguras si está visible
-            if (categoriaActiva === 'seguras') {
-                renderSafeLocationsPanel();
-            }
-        });
-    }
+    document.addEventListener('ampara:auth-changed', () => {
+        if (categoriaActiva === 'seguras') renderSafeLocationsPanel();
+    });
 
     // =========================================
-    // 4.1. ESTADO DE USUARIO Y UBICACIONES SEGURAS
+    // 4.1. UBICACIONES SEGURAS (ligadas a la cuenta real)
     // =========================================
-    let currentUser = localStorage.getItem('ampara_user') || null;
-
-    // Actualizar UI cuando se loguea/desloguea
-    function actualizarUIUsuario(email) {
-        currentUser = email;
-        const btnAuth = document.getElementById('btn-auth');
-        if (btnAuth && email) {
-            btnAuth.innerHTML = `<i class="fas fa-user-circle"></i> <span>${email.split('@')[0]}</span>`;
-            btnAuth.title = `Cerrar sesión de ${email}`;
-            btnAuth.onclick = (e) => {
-                e.preventDefault();
-                if (confirm(`¿Cerrar sesión de ${email}?`)) {
-                    localStorage.removeItem('ampara_user');
-                    currentUser = null;
-                    btnAuth.innerHTML = `<i class="fas fa-user-circle"></i> <span>Iniciar sesión</span>`;
-                    btnAuth.title = '';
-                    btnAuth.onclick = openAuthModal;
-                    if (categoriaActiva === 'seguras') renderSafeLocationsPanel();
-                }
-            };
-        }
-    }
-
-    // Inicializar UI al cargar (si ya había sesión guardada)
-    if (currentUser) actualizarUIUsuario(currentUser);
 
     // Obtener ubicaciones seguras del usuario actual
     function getSafeLocations() {
-        if (!currentUser) return [];
-        const key = `ampara_safe_locations_${currentUser}`;
+        const email = getCurrentUserEmail();
+        if (!email) return [];
+        const key = `ampara_safe_locations_${email}`;
         try {
             return JSON.parse(localStorage.getItem(key)) || [];
         } catch {
@@ -193,8 +109,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Guardar ubicaciones seguras
     function saveSafeLocations(locations) {
-        if (!currentUser) return;
-        const key = `ampara_safe_locations_${currentUser}`;
+        const email = getCurrentUserEmail();
+        if (!email) return;
+        const key = `ampara_safe_locations_${email}`;
         localStorage.setItem(key, JSON.stringify(locations));
     }
 
@@ -223,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         panel.hidden = false;
 
-        if (!currentUser) {
+        if (!getCurrentUserEmail()) {
             prompt.hidden = false;
             content.hidden = true;
             return;
@@ -301,7 +218,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let safeMarkers = [];
     function renderSafeLocationsOnMap() {
         if (!map) return;
-        // Limpiar marcadores anteriores
         safeMarkers.forEach(m => map.removeLayer(m));
         safeMarkers = [];
 
@@ -332,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const address = addressInput.value.trim();
 
             if (!name || !address) return;
-            if (!currentUser) {
+            if (!getCurrentUserEmail()) {
                 status.textContent = '❌ Debes iniciar sesión primero';
                 status.className = 'form-hint error';
                 return;
@@ -373,9 +289,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Botón "Iniciar sesión" del panel de ubicaciones seguras
     const btnLoginFromSafe = document.getElementById('btn-login-from-safe');
     if (btnLoginFromSafe) {
-        btnLoginFromSafe.addEventListener('click', openAuthModal);
+        btnLoginFromSafe.addEventListener('click', () => {
+            if (window.amparaAuth && window.amparaAuth.abrirModalLogin) {
+                window.amparaAuth.abrirModalLogin();
+            }
+        });
     }
-
 
     // =========================================
     // 5. CHAT — EMPÁTICO CON N8N
@@ -387,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const ACTION_MAP = {
         respirar: { label: '🧘 Ir a "Necesito calma"', target: '#respira' },
-        evidencias: { label: '📷 Analizar evidencia', target: '#evidencias' },
+        evidencias: { label: '📷 Analizar evidencia', target: '#expediente' },
         refugios: { label: '🏠 Ver refugios cercanos', target: '#refugios' },
         alerta: { label: '🚨 Activar alerta de emergencia', target: 'emergency' }
     };
@@ -459,10 +378,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return { reply: 'Escúchame: tu seguridad es lo primero. Presiona YA el botón rojo "Necesito ayuda ahora" arriba en la página, y llama al 105 o al 100. Aléjate del lugar o enciérrate donde puedas, y si hay gente cerca, pídeles ayuda. Estoy aquí, no cierres esta conversación.', risk_level: 'alto', suggested_actions: ['alerta'], escalate: true };
         }
         if (digitalHarrassment.test(lower)) {
-            return { reply: 'Gracias por contármelo, no estás sola. Primero: no le respondas nada y no borres los mensajes, porque son tu prueba. Toma capturas de todo (perfil, conversación, número) y guárdalas en la sección Analizar evidencia, que las deja fuera de tu celular por si él tiene acceso. Después bloquealo y repórtalo en la plataforma. Si quieres, seguimos hablando.', risk_level: 'medio', suggested_actions: ['evidencias'], escalate: false };
+            return { reply: 'Gracias por contármelo, no estás sola. Primero: no le respondas nada y no borres los mensajes, porque son tu prueba. Toma capturas de todo (perfil, conversación, número) y guárdalas en la sección Mi expediente, que las deja fuera de tu celular por si él tiene acceso. Después bloquealo y repórtalo en la plataforma. Si quieres, seguimos hablando.', risk_level: 'medio', suggested_actions: ['evidencias'], escalate: false };
         }
         if (domestic.test(lower)) {
-            return { reply: 'Lamento mucho que estés pasando esto, y quiero que sepas algo importante: no es tu culpa. Lo que describes es violencia, aunque él te diga que exageras. ¿Hay algún lugar donde puedas estar segura ahora, o alguien de confianza a quien puedas escribirle? Si tienes fotos o mensajes, guárdalos en Analizar evidencia por si los necesitas después. Y si en algún momento sientes peligro, el botón rojo de arriba te conecta al instante. ¿Quieres contarme un poco más?', risk_level: 'medio', suggested_actions: ['evidencias', 'refugios'], escalate: false };
+            return { reply: 'Lamento mucho que estés pasando esto, y quiero que sepas algo importante: no es tu culpa. Lo que describes es violencia, aunque él te diga que exageras. ¿Hay algún lugar donde puedas estar segura ahora, o alguien de confianza a quien puedas escribirle? Si tienes fotos o mensajes, guárdalos en Mi expediente por si los necesitas después. Y si en algún momento sientes peligro, el botón rojo de arriba te conecta al instante. ¿Quieres contarme un poco más?', risk_level: 'medio', suggested_actions: ['evidencias', 'refugios'], escalate: false };
         }
         if (acosoCallejero.test(lower)) {
             return { reply: 'Comprendo, y es normal sentirte así. Si puedes, camina hacia un lugar con más gente (una tienda, un banco, una farmacia) y quédate ahí un momento. Si tienes a alguien de confianza cerca, llámalo y cuéntale dónde estás. Si sientes que te siguen de verdad, activa la alerta con el botón rojo de arriba para que tu contacto de emergencia reciba tu ubicación. ¿Dónde estás ahora?', risk_level: 'medio', suggested_actions: ['alerta', 'refugios'], escalate: false };
@@ -471,7 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return { reply: 'Comprendo, no estás sola. ¿Hay algún lugar con más gente o recepción donde puedas estar mientras decides? Si quieres, activamos la Alerta de Ampara para que tu contacto de emergencia venga por ti con tu ubicación. ¿Lo hacemos?', risk_level: 'medio', suggested_actions: ['alerta'], escalate: false };
         }
         if (mediumRisk.test(lower)) {
-            return { reply: 'Gracias por confiarme esto, entiendo que no es fácil. ¿Hay algún lugar donde te sientas más segura ahora mismo? Guarda cualquier mensaje, captura o audio que tengas en Analizar evidencia, y si quieres revisa los refugios y líneas de ayuda cercanas. Si la situación empeora, el botón rojo de arriba activa ayuda de inmediato. ¿Quieres contarme un poco más?', risk_level: 'medio', suggested_actions: ['evidencias', 'refugios'], escalate: false };
+            return { reply: 'Gracias por confiarme esto, entiendo que no es fácil. ¿Hay algún lugar donde te sientas más segura ahora mismo? Guarda cualquier mensaje, captura o audio que tengas en Mi expediente, y si quieres revisa los refugios y líneas de ayuda cercanas. Si la situación empeora, el botón rojo de arriba activa ayuda de inmediato. ¿Quieres contarme un poco más?', risk_level: 'medio', suggested_actions: ['evidencias', 'refugios'], escalate: false };
         }
         if (lowRisk.test(lower)) {
             return { reply: 'Tiene sentido sentirte así, y me alegra que me lo cuentes. ¿Quieres contarme un poco más de lo que pasó? Estoy aquí contigo. Si te ayuda, prueba respirar lento unos momentos en la sección Necesito calma.', risk_level: 'bajo', suggested_actions: ['respirar'], escalate: false };
@@ -557,27 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // =========================================
-    // 6. ANÁLISIS DE EVIDENCIA (demo)
-    // =========================================
-    const dropzone = document.getElementById('evidence-dropzone');
-    const evidenceProgress = document.getElementById('evidence-progress');
-    const progressFill = document.getElementById('progress-fill');
-    const evidenceResult = document.getElementById('evidence-result');
-
-    if (dropzone) {
-        dropzone.addEventListener('click', () => {
-            dropzone.hidden = true;
-            evidenceProgress.hidden = false;
-            requestAnimationFrame(() => { progressFill.style.width = '100%'; });
-            setTimeout(() => {
-                evidenceProgress.hidden = true;
-                evidenceResult.hidden = false;
-            }, 1400);
-        });
-    }
-
-    // =========================================
-    // 7. EJERCICIO DE RESPIRACIÓN
+    // 6. EJERCICIO DE RESPIRACIÓN
     // =========================================
     const breathingCircle = document.getElementById('breathing-circle');
     const breathingText = document.getElementById('breathing-text');
@@ -629,7 +528,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================
-    // 8. GEOLOCALIZACIÓN, MAPA Y RENDERIZADO
+    // 7. GEOLOCALIZACIÓN, MAPA Y RENDERIZADO
     // =========================================
     let map;
     let userMarker;
@@ -777,8 +676,8 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     }
 
-        // =========================================
-    // 9. FILTROS, BÚSQUEDA, BANNER Y UBICACIONES SEGURAS
+    // =========================================
+    // 8. FILTROS, BÚSQUEDA, BANNER Y UBICACIONES SEGURAS
     // =========================================
     const chips = document.querySelectorAll('.chip');
     const btnLoadMore = document.getElementById('btn-load-more');

@@ -1,6 +1,7 @@
 
 <!DOCTYPE html>
 <html lang="es">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -35,8 +36,8 @@
             </a>
 
             <nav class="main-nav" id="main-nav" aria-label="Navegación principal">
+                <a href="#expediente">Mi expediente</a>
                 <a href="#chat">Habla con Ampara</a>
-                <a href="#evidencias">Evidencias</a>
                 <a href="#refugios">Refugios cercanos</a>
                 <a href="#respira">Respira</a>
             </nav>
@@ -115,10 +116,10 @@
                         <h3>Hablar con Ampara</h3>
                         <p>Un asistente guiado que te escucha sin juzgarte y te ayuda a pensar los siguientes pasos.</p>
                     </a>
-                    <a href="#evidencias" class="feature-card">
-                        <i class="fas fa-camera-retro" aria-hidden="true"></i>
-                        <h3>Analizar evidencia</h3>
-                        <p>Sube capturas o mensajes y detectamos señales de riesgo automáticamente.</p>
+                    <a href="#expediente" class="feature-card">
+                        <i class="fas fa-folder-shield" aria-hidden="true"></i>
+                        <h3>Mi expediente</h3>
+                        <p>Sube tu chat exportado y detectamos señales de riesgo automáticamente.</p>
                     </a>
                     <a href="#refugios" class="feature-card">
                         <i class="fas fa-map-location-dot" aria-hidden="true"></i>
@@ -185,48 +186,42 @@
         </section>
 
         <!-- =========================================
-             EVIDENCIAS
-             ========================================= -->
-        <section id="evidencias" class="split-section alt">
-            <div class="section-inner split-inner reverse">
-                <div class="evidence-panel">
-                    <div class="dropzone" id="evidence-dropzone">
-                        <i class="fas fa-cloud-arrow-up" aria-hidden="true"></i>
-                        <p><strong>Arrastra una captura</strong> o haz clic para analizar un ejemplo</p>
-                        <span class="caption">Capturas de chat, mensajes de texto o audios</span>
-                    </div>
+            MI EXPEDIENTE
+            ========================================= -->
+        <section id="expediente" class="section-block">
+            <div class="section-inner">
+                <p class="eyebrow">Mi expediente</p>
+                <h2>Guarda tu historial de conversación como evidencia</h2>
+                <p class="section-lead">
+                    Sube el chat que exportaste desde WhatsApp (Más → Exportar chat → Sin archivos
+                    multimedia). Vas a ver el análisis al instante, sin necesidad de iniciar sesión.
+                    Si quieres que quede guardado como parte de tu expediente permanente, ahí sí
+                    te vamos a pedir una cuenta, para que nadie más pueda verlo.
+                </p>
 
-                    <div class="evidence-progress" id="evidence-progress" hidden>
-                        <p class="caption">Analizando contenido para identificar señales de riesgo...</p>
-                        <div class="progress-bar-container">
-                            <div class="progress-bar-fill" id="progress-fill"></div>
-                        </div>
-                    </div>
+                <!-- Aviso suave, ya no bloquea la subida -->
+                <p id="expediente-login-required" class="caption" hidden>
+                    <i class="fas fa-circle-info" aria-hidden="true"></i> Aún no has iniciado sesión: puedes analizar tu chat igual, pero el resultado no se va a guardar hasta que inicies sesión.
+                </p>
 
-                    <div class="card result-card" id="evidence-result" hidden>
-                        <h4><i class="fas fa-exclamation-circle" aria-hidden="true"></i> Posible extorsión detectada</h4>
-                        <ul class="result-list">
-                            <li><i class="fas fa-circle" aria-hidden="true"></i> Lenguaje amenazante</li>
-                            <li><i class="fas fa-circle" aria-hidden="true"></i> Múltiples mensajes en corto tiempo</li>
-                            <li><i class="fas fa-circle" aria-hidden="true"></i> Número desconocido</li>
-                        </ul>
-                        <button class="btn btn-primary btn-block">Guardar evidencia de forma segura</button>
-                    </div>
+                <!-- Zona de carga: siempre visible -->
+                <div class="dropzone" id="expediente-dropzone">
+                    <i class="fas fa-file-arrow-up" aria-hidden="true"></i>
+                    <p><strong>Arrastra tu archivo .txt aquí</strong> o haz clic para seleccionarlo</p>
+                    <span class="caption">Solo el .txt exportado de WhatsApp, sin archivos multimedia</span>
                 </div>
+                <input type="file" id="expediente-file-input" accept=".txt" hidden>
 
-                <div class="split-copy">
-                    <p class="eyebrow">Analizar evidencia</p>
-                    <h2>Guarda pruebas sin dejar rastro visible</h2>
-                    <p>
-                        Muchas veces la evidencia se pierde porque da miedo guardarla en el mismo
-                        celular. Ampara analiza capturas y mensajes para identificar patrones de
-                        riesgo (amenazas, acoso, extorsión) y te ayuda a guardarlos en un lugar
-                        seguro, fuera del dispositivo.
-                    </p>
-                </div>
+                <p id="expediente-estado" class="expediente-estado" hidden></p>
+
+                <!-- Resultado del análisis que se acaba de subir (con o sin sesión) -->
+                <div id="expediente-resultado-preview" hidden></div>
+
+                <!-- Lista de casos ya guardados en el expediente -->
+                <h3 style="margin-top:32px;">Casos guardados</h3>
+                <div id="expediente-lista" class="expediente-lista" hidden></div>
             </div>
         </section>
-
             <!-- =========================================
              REFUGIOS CERCANOS
              ========================================= -->
@@ -409,6 +404,12 @@
     
 
     <script src="datos.js"></script>
+    <script src="supabase-client.js"></script>
+    <script src="auth.js"></script>
+    <script src="whatsapp-parser.js"></script>
+    <script src="crypto-utils.js"></script>
+    <script src="risk-analyzer.js"></script>
+    <script src="expediente.js"></script>
     <script src="app.js"></script>
 
 </body>
