@@ -30,6 +30,161 @@
     --transition-smooth: all 0.2s ease;
 }
 
+
+/* =========================================
+   TEMA OSCURO
+   ========================================= */
+[data-theme="dark"] {
+    --bg-cream: #150820;
+    --text-dark: #F5F0F7;
+    --purple-main: #C77DCF;
+    --purple-dark: #E8B8F0;
+    --orange: #FFA046;
+    --terracotta: #E07B5A;
+    --sage-green: #A8C4A0;
+    --sage-green-dark: #C4DCC0;
+    --bg-rose-soft: #2A1525;
+    --text-secondary: #B8A8BF;
+    --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
+    --shadow-soft: 0 8px 30px rgba(199, 125, 207, 0.1);
+
+    /* Overrides para fondos blancos hardcodeados */
+    color-scheme: dark;
+}
+
+/* Tarjetas y paneles con fondo blanco */
+[data-theme="dark"] .card,
+[data-theme="dark"] .feature-card,
+[data-theme="dark"] .chat-panel,
+[data-theme="dark"] .dropzone,
+[data-theme="dark"] .search-bar,
+[data-theme="dark"] .safe-locations-panel,
+[data-theme="dark"] .modal-card,
+[data-theme="dark"] .auth-card {
+    background: #1F0F2A;
+    border-color: rgba(199, 125, 207, 0.15);
+}
+
+[data-theme="dark"] .split-section.alt {
+    background: #1A0B22;
+}
+
+[data-theme="dark"] .chat-messages {
+    background: transparent;
+}
+
+[data-theme="dark"] .message-ai {
+    background: #2A1535;
+    color: #F5F0F7;
+}
+
+[data-theme="dark"] .chat-input-area {
+    border-top-color: rgba(199, 125, 207, 0.15);
+}
+
+[data-theme="dark"] .chat-input-area input {
+    background: #2A1535;
+    color: #F5F0F7;
+    border-color: rgba(199, 125, 207, 0.2);
+}
+
+[data-theme="dark"] .chat-input-area input::placeholder,
+[data-theme="dark"] .search-bar input::placeholder,
+[data-theme="dark"] .form-row input::placeholder {
+    color: #7A6B85;
+}
+
+[data-theme="dark"] .search-bar input,
+[data-theme="dark"] .form-row input {
+    background: transparent;
+    color: #F5F0F7;
+}
+
+[data-theme="dark"] .form-row input {
+    background: #2A1535;
+    border-color: rgba(199, 125, 207, 0.2);
+}
+
+[data-theme="dark"] .quick-reply-btn {
+    background: #2A1535;
+    border-color: rgba(199, 125, 207, 0.2);
+    color: #E8B8F0;
+}
+
+[data-theme="dark"] .quick-reply-btn:hover {
+    background: #3A1A45;
+}
+
+[data-theme="dark"] .chip {
+    background: #1F0F2A;
+    border-color: rgba(199, 125, 207, 0.2);
+    color: #B8A8BF;
+}
+
+[data-theme="dark"] .chip.active {
+    background: #C77DCF;
+    color: #150820;
+}
+
+[data-theme="dark"] .place-distance {
+    background: #2A1535;
+    color: #B8A8BF;
+}
+
+[data-theme="dark"] .map-placeholder {
+    background-color: #2A1535;
+    filter: brightness(0.9);
+}
+
+[data-theme="dark"] .category-info-banner {
+    background: rgba(199, 125, 207, 0.1);
+    border-left-color: #C77DCF;
+    color: #F5F0F7;
+}
+
+[data-theme="dark"] .safe-location-item {
+    background: #2A1535;
+}
+
+[data-theme="dark"] .safe-location-item:hover {
+    background: #3A1A45;
+}
+
+[data-theme="dark"] .safe-locations-panel {
+    border-color: rgba(199, 125, 207, 0.25);
+}
+
+[data-theme="dark"] .footer-legal,
+[data-theme="dark"] .footer-emergency p {
+    color: #B8A8BF;
+}
+
+[data-theme="dark"] .chat-panel-header {
+    border-bottom-color: rgba(199, 125, 207, 0.15);
+}
+
+[data-theme="dark"] .result-card {
+    background: rgba(239, 68, 68, 0.15);
+}
+
+[data-theme="dark"] .modal-overlay {
+    background: rgba(0, 0, 0, 0.9);
+}
+
+/* Mapa oscuro (invierte los colores del mapa de OSM) */
+[data-theme="dark"] .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.95);
+}
+
+[data-theme="dark"] .leaflet-container {
+    background: #150820;
+}
+
+[data-theme="dark"] .leaflet-popup-content-wrapper,
+[data-theme="dark"] .leaflet-popup-tip {
+    background: #1F0F2A;
+    color: #F5F0F7;
+}
 /* =========================================
    2. RESET
    ========================================= */
@@ -913,6 +1068,9 @@ img { max-width: 100%; display: block; }
     .safe-location-item .safe-actions { width: 100%; justify-content: flex-end; }
 }
 
+/* =========================================
+   EXPEDIENTE (feature de almendra)
+   ========================================= */
 #expediente-login-required {
     max-width: 520px;
     margin: 24px 0;
@@ -922,12 +1080,12 @@ img { max-width: 100%; display: block; }
     align-items: flex-start;
 }
 #expediente-login-required i { color: var(--purple-main); margin-right: 6px; }
- 
+
 .dropzone.dropzone-hover {
     border-color: var(--purple-main);
     background: #fbf7ff;
 }
- 
+
 .expediente-estado {
     margin: 16px 0;
     padding: 12px 16px;
@@ -939,14 +1097,14 @@ img { max-width: 100%; display: block; }
 .expediente-estado-progreso { background: #EFF6FF; color: #1D4ED8; }
 .expediente-estado-exito { background: #F0FDF4; color: #15803D; }
 .expediente-estado-error { background: #FEF2F2; color: #B91C1C; }
- 
+
 .expediente-lista {
     display: flex;
     flex-direction: column;
     gap: 16px;
     margin-top: 28px;
 }
- 
+
 .caso-card { display: flex; flex-direction: column; gap: 10px; }
 .caso-header {
     display: flex;
@@ -969,7 +1127,7 @@ img { max-width: 100%; display: block; }
 .caso-nombre { font-size: 15px; color: var(--purple-dark); }
 .caso-resumen { font-size: 14px; color: var(--text-dark); line-height: 1.5; }
 .caso-meta { display: flex; flex-wrap: wrap; gap: 16px; }
- 
+
 .btn-toggle-hallazgos {
     align-self: flex-start;
     background: none;
@@ -994,7 +1152,7 @@ img { max-width: 100%; display: block; }
 .hallazgo-item { border-left: 3px solid var(--orange); padding-left: 10px; }
 .hallazgo-categoria { font-size: 12px; font-weight: 600; color: var(--terracotta); display: block; }
 .hallazgo-item p { font-size: 13px; font-style: italic; margin-top: 4px; }
- 
+
 .caso-actions { display: flex; gap: 10px; margin-top: 6px; }
 .caso-actions .btn-outline { padding: 8px 16px; font-size: 13px; }
 .btn-borrar-caso {
@@ -1006,3 +1164,194 @@ img { max-width: 100%; display: block; }
     cursor: pointer;
 }
 .btn-borrar-caso:hover { background: #fef2f2; }
+
+
+/* =========================================
+   BOTÓN DE CAMBIO DE TEMA (tu aporte)
+   ========================================= */
+.btn-theme-toggle {
+    background: transparent;
+    border: 1.5px solid rgba(82, 10, 91, 0.3);
+    color: var(--purple-dark);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    transition: var(--transition-smooth);
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.btn-theme-toggle:hover {
+    background: rgba(82, 10, 91, 0.06);
+    border-color: var(--purple-main);
+    transform: rotate(15deg);
+}
+
+[data-theme="dark"] .btn-theme-toggle {
+    border-color: rgba(199, 125, 207, 0.4);
+    color: #FFD966;
+}
+
+[data-theme="dark"] .btn-theme-toggle:hover {
+    background: rgba(199, 125, 207, 0.1);
+    border-color: #C77DCF;
+}
+
+@media (max-width: 720px) {
+    .btn-theme-toggle {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
+    }
+}
+
+/* =========================================
+   CORRECCIONES DE MODO OSCURO
+   ========================================= */
+
+[data-theme="dark"] .site-header {
+    background: rgba(21, 8, 32, 0.95);
+    border-bottom: 1px solid rgba(199, 125, 207, 0.15);
+}
+
+[data-theme="dark"] .trust-bar {
+    background: #0F0518;
+}
+
+[data-theme="dark"] .trust-inner {
+    color: #C4DCC0;
+}
+
+[data-theme="dark"] .trust-inner i {
+    color: #A8C4A0;
+}
+
+[data-theme="dark"] .calm-section {
+    background: linear-gradient(180deg, #150820 0%, #2A1535 100%);
+}
+
+[data-theme="dark"] .calm-text {
+    color: #B8A8BF;
+}
+
+[data-theme="dark"] .breathing-circle {
+    background: rgba(199, 125, 207, 0.15);
+    border-color: #C4DCC0;
+}
+
+[data-theme="dark"] .breathing-circle .inner-text {
+    color: #E8B8F0;
+}
+
+[data-theme="dark"] .site-footer {
+    background: #0F0518;
+    color: #B8A8BF;
+}
+
+[data-theme="dark"] .footer-brand {
+    color: #F5F0F7;
+}
+
+[data-theme="dark"] .footer-emergency strong {
+    color: #E8B8F0;
+}
+
+[data-theme="dark"] .footer-emergency a {
+    color: #A8C4A0;
+}
+
+[data-theme="dark"] .footer-legal {
+    color: #B8A8BF;
+}
+
+[data-theme="dark"] .btn-outline {
+    color: #E8B8F0;
+    border-color: #E8B8F0;
+}
+
+[data-theme="dark"] .btn-outline:hover {
+    background: rgba(199, 125, 207, 0.1);
+}
+
+[data-theme="dark"] .hero-note {
+    color: #B8A8BF;
+}
+
+[data-theme="dark"] .feature-card {
+    background: #1F0F2A;
+    border: 1px solid rgba(199, 125, 207, 0.1);
+}
+
+[data-theme="dark"] .feature-card h3 {
+    color: #E8B8F0;
+}
+
+[data-theme="dark"] .feature-card p {
+    color: #B8A8BF;
+}
+
+[data-theme="dark"] .feature-card-lg {
+    background: #2A1535;
+}
+
+[data-theme="dark"] .feature-card-lg h3 {
+    color: #F5F0F7;
+}
+
+[data-theme="dark"] .brand {
+    color: #E8B8F0;
+}
+
+[data-theme="dark"] .main-nav a {
+    color: #D8C8E0;
+}
+
+[data-theme="dark"] .main-nav a:hover {
+    color: #C77DCF;
+}
+
+[data-theme="dark"] .btn-auth {
+    color: #E8B8F0;
+    border-color: rgba(199, 125, 207, 0.4);
+}
+
+[data-theme="dark"] .btn-auth:hover {
+    background: rgba(199, 125, 207, 0.1);
+}
+
+[data-theme="dark"] .split-copy p {
+    color: #B8A8BF;
+}
+
+[data-theme="dark"] .check-list li {
+    color: #D8C8E0;
+}
+
+[data-theme="dark"] .result-list li {
+    color: #F5F0F7;
+}
+
+[data-theme="dark"] .btn-primary {
+    background: #C77DCF;
+    color: #150820;
+}
+
+[data-theme="dark"] .btn-primary:hover {
+    background: #E8B8F0;
+}
+
+[data-theme="dark"] .btn-call {
+    background: #C77DCF;
+    color: #150820;
+}
+
+[data-theme="dark"] .btn-route {
+    background: transparent;
+    color: #E8B8F0;
+    border-color: #E8B8F0 !important;
+}

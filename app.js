@@ -12,6 +12,53 @@ document.addEventListener('DOMContentLoaded', () => {
     const amparaSessionId = 'sess_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
     const amparaHistory = [];
 
+
+        // =========================================
+    // 0.1. MODO OSCURO / CLARO
+    // =========================================
+    const btnThemeToggle = document.getElementById('btn-theme-toggle');
+    const rootElement = document.documentElement;
+
+    // Leer preferencia guardada o la del sistema
+    function getPreferredTheme() {
+        const saved = localStorage.getItem('ampara_theme');
+        if (saved === 'dark' || saved === 'light') return saved;
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    // Aplicar tema
+    function applyTheme(theme) {
+        rootElement.setAttribute('data-theme', theme);
+        localStorage.setItem('ampara_theme', theme);
+        if (btnThemeToggle) {
+            const icon = btnThemeToggle.querySelector('i');
+            if (icon) {
+                icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+            btnThemeToggle.setAttribute('aria-label',
+                theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
+        }
+    }
+
+    // Inicializar
+    applyTheme(getPreferredTheme());
+
+    // Toggle al hacer clic
+    if (btnThemeToggle) {
+        btnThemeToggle.addEventListener('click', () => {
+            const current = rootElement.getAttribute('data-theme');
+            applyTheme(current === 'dark' ? 'light' : 'dark');
+        });
+    }
+
+    // Escuchar cambios de preferencia del sistema
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (!localStorage.getItem('ampara_theme')) {
+            applyTheme(e.matches ? 'dark' : 'light');
+        }
+    });
+
+
     // =========================================
     // Helpers: limpiar texto de la IA
     // =========================================
