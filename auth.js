@@ -1,7 +1,23 @@
- document.addEventListener('DOMContentLoaded', () => {
-    'use strict';
- 
+/* =========================================
+   AMPARA AI - AUTENTICACIÓN (Supabase)
+   =========================================
+   Maneja todo el modal #auth-modal: cambio entre "Iniciar sesión" y
+   "Crear cuenta", el campo de teléfono (solo al registrarse),
+   el login/registro real y el cierre de sesión.
 
+   El teléfono se guarda en los datos de la cuenta de Supabase
+   (user_metadata.telefono), así otros módulos pueden leerlo con:
+       window.amparaAuth.currentUser.user_metadata.telefono
+
+   Requiere que supabase-client.js se haya cargado antes.
+   ========================================= */
+
+document.addEventListener('DOMContentLoaded', () => {
+    'use strict';
+
+    // =========================================
+    // 0. ESTADO GLOBAL DE SESIÓN
+    // =========================================
     window.amparaAuth = {
         currentUser: null,
         ready: false
@@ -13,40 +29,52 @@
         }));
     }
 
+    // =========================================
+    // 1. REFERENCIAS AL MODAL
+    // =========================================
     const authModal = document.getElementById('auth-modal');
     const btnAuth = document.getElementById('btn-auth');
     const btnCloseAuth = document.getElementById('btn-close-auth');
-    const linkRegister = document.getElementById('link-register');
     const authForm = document.getElementById('auth-form');
-    const authTitle = authModal ? authModal.querySelector('h2') : null;
-    const authSubtitle = authModal ? authModal.querySelector('.auth-header p') : null;
-    const authSubmitBtn = authForm ? authForm.querySelector('button[type="submit"]') : null;
+    const authTitle = document.getElementById('auth-title');
+    const authSubtitle = document.getElementById('auth-subtitle');
+    const authSubmitBtn = document.getElementById('auth-submit-btn');
     const authEmailInput = document.getElementById('auth-email');
     const authPasswordInput = document.getElementById('auth-password');
- 
+    const authPhoneGroup = document.getElementById('auth-phone-group');
+    const authPhoneInput = document.getElementById('auth-phone');
+    const footerRegistro = document.getElementById('auth-footer-text');
+    const footerLogin = document.getElementById('auth-footer-login');
+    const linkRegister = document.getElementById('link-register');
+    const linkLogin = document.getElementById('link-login');
+
     let isRegisterMode = false;
- 
-    function openAuthModal() {
-        if (authModal) authModal.hidden = false;
-        setAuthMode(false);
+
+    function setAuthMode(registerMode) {
+        isRegisterMode = registerMode;
         clearAuthError();
+
+        if (authTitle) authTitle.textContent = registerMode ? 'Crea tu cuenta' : 'Bienvenida de nuevo';
+        if (authSubtitle) authSubtitle.textContent = registerMode ? 'Tu espacio seguro comienza aquí.' : 'Tu espacio seguro te espera.';
+        if (authSubmitBtn) authSubmitBtn.textContent = registerMode ? 'Registrarme' : 'Iniciar sesión';
+
+        if (authPhoneGroup) authPhoneGroup.hidden = !registerMode;
+        if (authPhoneInput) {
+            authPhoneInput.required = registerMode;
+            if (!registerMode) authPhoneInput.value = '';
+        }
+
+        if (footerRegistro) footerRegistro.hidden = registerMode;
+        if (footerLogin) footerLogin.hidden = !registerMode;
+    }
+
+    function openAuthModal() {
+        setAuthMode(false);
+        if (authModal) authModal.hidden = false;
     }
     function closeAuthModal() {
         if (authModal) authModal.hidden = true;
-    }
-    function setAuthMode(registerMode) {
-        isRegisterMode = registerMode;
-        if (registerMode) {
-            if (authTitle) authTitle.textContent = 'Crea tu cuenta';
-            if (authSubtitle) authSubtitle.textContent = 'Tu espacio seguro comienza aquí.';
-            if (authSubmitBtn) authSubmitBtn.textContent = 'Registrarse';
-            if (linkRegister) linkRegister.textContent = 'Inicia sesión aquí';
-        } else {
-            if (authTitle) authTitle.textContent = 'Bienvenida de nuevo';
-            if (authSubtitle) authSubtitle.textContent = 'Tu espacio seguro te espera.';
-            if (authSubmitBtn) authSubmitBtn.textContent = 'Iniciar sesión';
-            if (linkRegister) linkRegister.textContent = 'Regístrate aquí';
-        }
+        setAuthMode(false);
     }
 
     function showAuthError(message) {
@@ -63,7 +91,21 @@
         const errorEl = document.getElementById('auth-error');
         if (errorEl) errorEl.textContent = '';
     }
- 
+
+    // Deja solo dígitos y valida un celular peruano (9 dígitos, empieza en 9),
+    // aceptando que la persona escriba +51 o espacios.
+    function normalizarTelefono(valor) {
+        let digitos = String(valor || '').replace(/\D/g, '');
+        if (digitos.startsWith('51') && digitos.length === 11) digitos = digitos.slice(2);
+        return digitos;
+    }
+    function telefonoValido(digitos) {
+        return /^9\d{8}$/.test(digitos);
+    }
+
+    // =========================================
+    // 2. BOTÓN DE CABECERA SEGÚN SESIÓN
+    // =========================================
     function actualizarBotonAuth() {
         if (!btnAuth) return;
         const span = btnAuth.querySelector('span');
@@ -76,6 +118,9 @@
         }
     }
 
+    // =========================================
+    // 3. LISTENERS DEL MODAL
+    // =========================================
     if (btnAuth) {
         btnAuth.addEventListener('click', () => {
             if (window.amparaAuth.currentUser) {
@@ -94,19 +139,28 @@
     if (linkRegister) {
         linkRegister.addEventListener('click', (e) => {
             e.preventDefault();
-            setAuthMode(!isRegisterMode);
-            clearAuthError();
+            setAuthMode(true);
+        });
+    }
+    if (linkLogin) {
+        linkLogin.addEventListener('click', (e) => {
+            e.preventDefault();
+            setAuthMode(false);
         });
     }
 
+    // =========================================
+    // 4. REGISTRO / INICIO DE SESIÓN
+    // =========================================
     if (authForm) {
         authForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             clearAuthError();
- 
+
             const email = authEmailInput ? authEmailInput.value.trim() : '';
             const password = authPasswordInput ? authPasswordInput.value : '';
- 
+            const telefono = normalizarTelefono(authPhoneInput ? authPhoneInput.value : '');
+
             if (!email || !password) {
                 showAuthError('Por favor, completa todos los campos.');
                 return;
@@ -115,45 +169,53 @@
                 showAuthError('La contraseña debe tener al menos 6 caracteres.');
                 return;
             }
- 
+            if (isRegisterMode && !telefonoValido(telefono)) {
+                showAuthError('Ingresa un celular válido de 9 dígitos (ej. 987654321).');
+                return;
+            }
+
+            const modoAlEnviar = isRegisterMode;
             if (authSubmitBtn) {
                 authSubmitBtn.disabled = true;
-                authSubmitBtn.textContent = isRegisterMode ? 'Creando cuenta...' : 'Ingresando...';
+                authSubmitBtn.textContent = modoAlEnviar ? 'Creando cuenta...' : 'Ingresando...';
             }
- 
+
             try {
-                if (isRegisterMode) {
+                if (modoAlEnviar) {
                     const { data, error } = await supabaseClient.auth.signUp({
                         email,
                         password,
-                        options: { emailRedirectTo: window.location.origin }
+                        options: {
+                            emailRedirectTo: window.location.origin,
+                            data: { telefono: '+51' + telefono }
+                        }
                     });
                     if (error) throw error;
 
+                    // Con "Confirm email" activado no hay sesión hasta confirmar
                     if (!data.session) {
-                        showAuthError('Cuenta creada. Revisa tu correo para confirmar antes de iniciar sesión.');
                         setAuthMode(false);
+                        showAuthError('Cuenta creada. Revisa tu correo para confirmarla y luego inicia sesión.');
                         return;
                     }
                 } else {
                     const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
                     if (error) throw error;
                 }
- 
+
                 authForm.reset();
                 closeAuthModal();
-
             } catch (err) {
                 showAuthError(traducirErrorAuth(err));
             } finally {
                 if (authSubmitBtn) {
                     authSubmitBtn.disabled = false;
-                    authSubmitBtn.textContent = isRegisterMode ? 'Registrarse' : 'Iniciar sesión';
+                    authSubmitBtn.textContent = isRegisterMode ? 'Registrarme' : 'Iniciar sesión';
                 }
             }
         });
     }
- 
+
     function traducirErrorAuth(err) {
         console.error('Error de Supabase Auth:', err);
         const msg = (err && err.message) || '';
@@ -164,18 +226,24 @@
         if (msg.toLowerCase().includes('rate limit')) return 'Demasiados intentos seguidos. Espera un minuto e intenta de nuevo.';
         return 'Error: ' + msg;
     }
- 
+
+    // =========================================
+    // 5. CERRAR SESIÓN
+    // =========================================
     async function cerrarSesion() {
         await supabaseClient.auth.signOut();
     }
     window.amparaAuth.cerrarSesion = cerrarSesion;
     window.amparaAuth.abrirModalLogin = openAuthModal;
- 
+    window.amparaAuth.abrirModalRegistro = () => { openAuthModal(); setAuthMode(true); };
+
+    // =========================================
+    // 6. CAMBIOS DE SESIÓN
+    // =========================================
     supabaseClient.auth.onAuthStateChange((_event, session) => {
         window.amparaAuth.currentUser = session ? session.user : null;
         window.amparaAuth.ready = true;
         actualizarBotonAuth();
         emitAuthChange();
     });
- 
 });

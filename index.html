@@ -72,6 +72,16 @@
                 <div class="hero-copy">
                     <p class="eyebrow">Acompañamiento digital · Confidencial</p>
                     <h1>No estás sola en esto.</h1>
+
+                    <!-- Botón grande de ayuda (solo se ve en celular) -->
+                    <button type="button" class="hero-sos-mobile" id="btn-emergency-hero">
+                        <span class="hero-sos-icon"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i></span>
+                        <span class="hero-sos-text">
+                            <strong>Necesito ayuda ahora</strong>
+                            <small>Activa la alerta y llama a tu círculo de confianza</small>
+                        </span>
+                        <i class="fas fa-chevron-right hero-sos-arrow" aria-hidden="true"></i>
+                    </button>
                     <p class="hero-lead">
                         Ampara AI es un espacio seguro para mujeres que atraviesan acoso, violencia
                         digital o física. Te escucha, te orienta y te ayuda a reunir evidencia,
@@ -122,7 +132,7 @@
                         <p>Un asistente guiado que te escucha sin juzgarte y te ayuda a pensar los siguientes pasos.</p>
                     </a>
                     <a href="#expediente" class="feature-card">
-                        <i class="fas fa-folder-shield" aria-hidden="true"></i>
+                        <i class="fas fa-folder-open" aria-hidden="true"></i>
                         <h3>Mi expediente</h3>
                         <p>Sube tu chat exportado y detectamos señales de riesgo automáticamente.</p>
                     </a>
@@ -332,10 +342,10 @@
          MODAL: PROTOCOLO DE EMERGENCIA
          ========================================= -->
     <div class="modal-overlay" id="emergency-modal" hidden>
-        <div class="modal-card" role="dialog" aria-modal="true" aria-label="Protocolo de emergencia activo">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-label="Alerta de emergencia">
             <i class="fas fa-triangle-exclamation emergency-icon" aria-hidden="true"></i>
-            <h2>Tu ayuda ya está en camino</h2>
-            <p>Hemos activado el protocolo de emergencia. Tu ubicación puede compartirse con tu red de confianza y las autoridades.</p>
+            <h2>Alerta activada</h2>
+            <p>Envía tu ubicación a tu círculo de confianza con un toque. Si estás en peligro inmediato, llama al 105.</p>
 
             <div class="checklist">
                 <div class="checklist-item done">
@@ -343,23 +353,33 @@
                     <div class="text">Activación</div>
                     <div class="status-text">Listo</div>
                 </div>
-                <div class="checklist-item done">
-                    <div class="status-icon"><i class="fas fa-check" aria-hidden="true"></i></div>
-                    <div class="text">Ubicación</div>
-                    <div class="status-text">Listo</div>
-                </div>
-                <div class="checklist-item">
+                <div class="checklist-item" id="check-ubicacion">
                     <div class="status-icon"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i></div>
-                    <div class="text">Evaluación de riesgo</div>
-                    <div class="status-text">En proceso...</div>
+                    <div class="text">Ubicación GPS</div>
+                    <div class="status-text">Obteniendo...</div>
+                </div>
+                <div class="checklist-item" id="check-envio">
+                    <div class="status-icon"><i class="fas fa-hand-pointer" aria-hidden="true"></i></div>
+                    <div class="text">Enviar ubicación a contactos de confianza</div>
+                    <div class="status-text">Toca un contacto</div>
                 </div>
             </div>
-            <div id="emergency-contacts" class="emergency-contacts" hidden>
-                 <p class="emergency-contacts-title">Tu círculo de confianza</p>
+
+            <a href="tel:105" class="btn btn-block btn-call-105">
+                <i class="fas fa-phone" aria-hidden="true"></i> Llamar a la Policía (105)
+            </a>
+
+            <div id="emergency-contacts" class="emergency-contacts">
+                <p class="emergency-contacts-title">Tu círculo de confianza</p>
                 <div id="emergency-contacts-list"></div>
             </div>
 
-            <button id="btn-cancel-alert" class="btn btn-white btn-block">Cancelar alerta</button>
+            <button type="button" id="btn-share-location" class="btn btn-outline btn-block">
+                <i class="fas fa-share-nodes" aria-hidden="true"></i> Compartir mi ubicación por otra app
+            </button>
+            <p id="emergency-hint" class="caption emergency-hint"></p>
+
+            <button id="btn-cancel-alert" class="btn btn-white btn-block">Cerrar alerta</button>
         </div>
     </div>
 
@@ -373,22 +393,29 @@
             </button>
             <div class="auth-header">
                 <img src="logo.png" alt="Ampara AI" class="auth-logo">
-                <h2>Bienvenida de nuevo</h2>
-                <p>Tu espacio seguro te espera.</p>
+                <h2 id="auth-title">Bienvenida de nuevo</h2>
+                <p id="auth-subtitle">Tu espacio seguro te espera.</p>
             </div>
             <form id="auth-form" class="auth-form">
                 <div class="form-group">
                     <label for="auth-email">Correo electrónico</label>
-                    <input type="email" id="auth-email" placeholder="tucorreo@ejemplo.com" required>
+                    <input type="email" id="auth-email" placeholder="tucorreo@ejemplo.com" autocomplete="email" required>
                 </div>
                 <div class="form-group">
                     <label for="auth-password">Contraseña</label>
-                    <input type="password" id="auth-password" placeholder="••••••••" required>
+                    <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password" required>
                 </div>
-                <button type="submit" class="btn btn-primary btn-block">Iniciar sesión</button>
+                <!-- Campo de teléfono: solo visible al crear cuenta -->
+                <div class="form-group" id="auth-phone-group" hidden>
+                    <label for="auth-phone">Tu número de celular</label>
+                    <input type="tel" id="auth-phone" placeholder="Ej. 987654321" autocomplete="tel" inputmode="tel">
+                    <span class="caption">Lo usaremos solo para emergencias. Nadie más lo verá.</span>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" id="auth-submit-btn">Iniciar sesión</button>
             </form>
             <div class="auth-footer">
-                <p>¿No tienes cuenta? <a href="#" id="link-register">Regístrate aquí</a></p>
+                <p id="auth-footer-text">¿No tienes cuenta? <a href="#" id="link-register">Regístrate aquí</a></p>
+                <p id="auth-footer-login" hidden>¿Ya tienes cuenta? <a href="#" id="link-login">Inicia sesión</a></p>
             </div>
         </div>
     </div>
@@ -447,6 +474,27 @@
             </div>
         </div>
     </div>
+
+    <!-- =========================================
+         NAVEGACIÓN INFERIOR (solo celular)
+         ========================================= -->
+    <nav class="bottom-nav" aria-label="Navegación rápida">
+        <a href="#inicio" data-section="inicio" class="active">
+            <i class="fas fa-house" aria-hidden="true"></i><span>Inicio</span>
+        </a>
+        <a href="#chat" data-section="chat">
+            <i class="fas fa-comment-dots" aria-hidden="true"></i><span>Ampara</span>
+        </a>
+        <a href="#expediente" data-section="expediente">
+            <i class="fas fa-folder-open" aria-hidden="true"></i><span>Expediente</span>
+        </a>
+        <a href="#refugios" data-section="refugios">
+            <i class="fas fa-map-location-dot" aria-hidden="true"></i><span>Ayuda cerca</span>
+        </a>
+        <a href="#" id="bottom-nav-contacts">
+            <i class="fas fa-address-book" aria-hidden="true"></i><span>Contactos</span>
+        </a>
+    </nav>
 
     <!-- =========================================
          FOOTER

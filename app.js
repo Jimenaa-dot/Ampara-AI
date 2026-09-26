@@ -114,28 +114,154 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnEmergency = document.getElementById('btn-emergency');
     const btnCancelAlert = document.getElementById('btn-cancel-alert');
 
-    function renderContactosEnEmergencia() {
-        const wrap = document.getElementById('emergency-contacts');
-        const list = document.getElementById('emergency-contacts-list');
-        if (!wrap || !list) return;
+    // --- Ubicación real del dispositivo para la alerta ---
+    let ubicacionEmergencia = null;         // { lat, lng, precision }
+    let buscandoUbicacion = false;
+    const contactosAvisados = new Set();
 
-        const contactos = contactosCache.filter(c => c.telefono);
-        if (!getCurrentUser() || contactos.length === 0) {
-            wrap.hidden = true;
-            return;
-        }
-        wrap.hidden = false;
-        list.innerHTML = contactos.map(c => `
-            <a class="emergency-contact-btn" href="tel:${escapeHTML(c.telefono)}">
-                <i class="fas fa-phone" aria-hidden="true"></i>
-                <span>Llamar a ${escapeHTML(c.nombre)}</span>
-            </a>
-        `).join('');
+    function setCheck(id, estado, texto) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const iconos = {
+            ok: 'fa-check',
+            error: 'fa-xmark',
+            cargando: 'fa-spinner fa-spin',
+            pendiente: 'fa-hand-pointer'
+        };
+        el.classList.toggle('done', estado === 'ok');
+        el.classList.toggle('error', estado === 'error');
+        const icon = el.querySelector('.status-icon');
+        if (icon) icon.innerHTML = `<i class="fas ${iconos[estado] || iconos.pendiente}" aria-hidden="true"></i>`;
+        const txt = el.querySelector('.status-text');
+        if (txt) txt.textContent = texto;
     }
 
+    function obtenerUbicacionEmergencia() {
+        setCheck('check-ubicacion', 'cargando', 'Obteniendo...');
+        buscandoUbicacion = true;
+        return new Promise(resolve => {
+            const terminar = (ubic, estado, texto) => {
+                ubicacionEmergencia = ubic;
+                buscandoUbicacion = false;
+                setCheck('check-ubicacion', estado, texto);
+                resolve(ubic);
+            };
+            if (!navigator.geolocation) {
+                terminar(null, 'error', 'No disponible');
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const ubic = {
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                        precision: Math.round(pos.coords.accuracy)
+                    };
+                    terminar(ubic, 'ok', `Lista (±${ubic.precision} m)`);
+                },
+                (err) => terminar(null, 'error', err.code === 1 ? 'Permiso denegado' : 'No disponible'),
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+            );
+        });
+    }
+
+    function construirMensajeAlerta() {
+        const hora = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+        if (ubicacionEmergencia) {
+            const { lat, lng, precision } = ubicacionEmergencia;
+            const link = `https://maps.google.com/?q=${lat.toFixed(6)},${lng.toFixed(6)}`;
+            return `🚨 Necesito ayuda. Estoy aquí ${link} (precisión aproximada ${precision} m, ${hora}). Enviado desde Ampara AI.`;
+        }
+        return `🚨 Necesito ayuda, por favor comunícate conmigo lo antes posible (${hora}). No pude compartir mi ubicación. Enviado desde Ampara AI.`;
+    }
+
+    // 987654321 -> 51987654321 (formato que piden WhatsApp y SMS)
+    function telefonoInternacional(telefono) {
+        let d = String(telefono || '').replace(/\D/g, '');
+        if (d.length === 9 && d.startsWith('9')) d = '51' + d;
+        return d;
+    }
+
+    function renderContactosEnEmergencia() {
+        const list = document.getElementById('emergency-contacts-list');
+        if (!list) return;
+
+        if (!getCurrentUser()) {
+            list.innerHTML = `<p class="emergency-empty">Inicia sesión y agrega contactos para enviarles tu ubicación con un toque.</p>`;
+            setCheck('check-envio', 'pendiente', 'Sin contactos');
+            return;
+        }
+
+        const contactos = contactosCache.filter(c => c.telefono);
+        if (contactos.length === 0) {
+            list.innerHTML = `<p class="emergency-empty">Aún no tienes contactos con teléfono. Agrégalos en "Contactos de emergencia".</p>`;
+            setCheck('check-envio', 'pendiente', 'Sin contactos');
+            return;
+        }
+
+        const mensaje = construirMensajeAlerta();
+        const esperando = buscandoUbicacion ? ' <small>(esperando GPS...)</small>' : '';
+
+        list.innerHTML = contactos.map(c => {
+            const num = telefonoInternacional(c.telefono);
+            const wa = `https://wa.me/${num}?text=${encodeURIComponent(mensaje)}`;
+            const sms = `sms:+${num}?body=${encodeURIComponent(mensaje)}`;
+            return `
+                <div class="emergency-contact-row">
+                    <span class="emergency-contact-name">${escapeHTML(c.nombre)}</span>
+                    <a class="emergency-btn-wa" href="${wa}" target="_blank" rel="noopener" data-nombre="${escapeHTML(c.nombre)}">
+                        <i class="fab fa-whatsapp" aria-hidden="true"></i> Enviar ubicación${esperando}
+                    </a>
+                    <a class="emergency-btn-icon" href="${sms}" data-nombre="${escapeHTML(c.nombre)}" title="Enviar por SMS" aria-label="Enviar por SMS a ${escapeHTML(c.nombre)}">
+                        <i class="fas fa-comment-sms" aria-hidden="true"></i>
+                    </a>
+                    <a class="emergency-btn-icon" href="tel:+${num}" title="Llamar" aria-label="Llamar a ${escapeHTML(c.nombre)}">
+                        <i class="fas fa-phone" aria-hidden="true"></i>
+                    </a>
+                </div>
+            `;
+        }).join('');
+
+        list.querySelectorAll('.emergency-btn-wa, .emergency-btn-icon[href^="sms:"]').forEach(a => {
+            a.addEventListener('click', () => {
+                contactosAvisados.add(a.dataset.nombre);
+                const nombres = [...contactosAvisados];
+                setCheck('check-envio', 'ok', nombres.length === 1 ? `Mensaje listo para ${nombres[0]}` : `Mensaje listo para ${nombres.length} contactos`);
+            });
+        });
+
+        if (contactosAvisados.size === 0) setCheck('check-envio', 'pendiente', 'Toca un contacto');
+    }
+
+    async function compartirUbicacionGenerica() {
+        const hint = document.getElementById('emergency-hint');
+        const mensaje = construirMensajeAlerta();
+        try {
+            if (navigator.share) {
+                await navigator.share({ title: 'Necesito ayuda', text: mensaje });
+            } else if (navigator.clipboard) {
+                await navigator.clipboard.writeText(mensaje);
+                if (hint) hint.textContent = 'Mensaje copiado. Pégalo en la app que prefieras.';
+            }
+        } catch (err) {
+            // La persona canceló el menú de compartir, no es un error
+        }
+    }
+
+    const btnShareLocation = document.getElementById('btn-share-location');
+    if (btnShareLocation) btnShareLocation.addEventListener('click', compartirUbicacionGenerica);
+
     function openEmergencyModal() {
-        renderContactosEnEmergencia();
+        contactosAvisados.clear();
+        const hint = document.getElementById('emergency-hint');
+        if (hint) hint.textContent = '';
+        ubicacionEmergencia = null;
         if (emergencyModal) emergencyModal.hidden = false;
+
+        const promesa = obtenerUbicacionEmergencia();
+        renderContactosEnEmergencia();
+        // Cuando llega la ubicación, los botones se actualizan con el link del mapa
+        promesa.then(() => renderContactosEnEmergencia());
     }
     function closeEmergencyModal() {
         if (emergencyModal) emergencyModal.hidden = true;
@@ -235,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = document.createElement('div');
             item.className = 'safe-location-item';
             item.innerHTML = `
-                <i class="fas fa-house-chimney-heart"></i>
+                <i class="fas fa-house-user"></i>
                 <div class="safe-info">
                     <strong>${escapeHTML(c.nombre)}</strong>
                     ${c.telefono ? `<span><i class="fas fa-phone" aria-hidden="true"></i> ${escapeHTML(c.telefono)}</span>` : ''}
@@ -1138,6 +1264,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.addEventListener('ampara:auth-changed', alCambiarSesion);
+
+    // =========================================
+    // 9. ACCESOS DE CELULAR (botón grande de ayuda y barra inferior)
+    // =========================================
+    const btnEmergencyHero = document.getElementById('btn-emergency-hero');
+    if (btnEmergencyHero) btnEmergencyHero.addEventListener('click', openEmergencyModal);
+
+    const bottomNavContacts = document.getElementById('bottom-nav-contacts');
+    if (bottomNavContacts) bottomNavContacts.addEventListener('click', openContactsModal);
+
+    // Marca en la barra inferior la sección que se está viendo
+    const bottomLinks = document.querySelectorAll('.bottom-nav a[data-section]');
+    const seccionesNav = [
+        ['inicio', document.querySelector('.hero')],
+        ['chat', document.getElementById('chat')],
+        ['expediente', document.getElementById('expediente')],
+        ['refugios', document.getElementById('refugios')]
+    ].filter(([, el]) => el);
+
+    if ('IntersectionObserver' in window && bottomLinks.length) {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting) return;
+                const par = seccionesNav.find(([, el]) => el === entry.target);
+                if (!par) return;
+                bottomLinks.forEach(a => a.classList.toggle('active', a.dataset.section === par[0]));
+            });
+        }, { rootMargin: '-45% 0px -50% 0px' });
+        seccionesNav.forEach(([, el]) => observer.observe(el));
+    }
 
     // =========================================
     // INICIALIZACIÓN
