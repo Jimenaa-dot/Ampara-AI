@@ -289,7 +289,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 iconAnchor: [12, 24]
             });
             const marker = L.marker([c.lat, c.lng], { icon })
-                .bindPopup(`<b>🛡️ ${escapeHTML(c.nombre)}</b><br><small>${escapeHTML(c.direccion)}</small>${c.telefono ? `<br><a href="tel:${escapeHTML(c.telefono)}">📞 ${escapeHTML(c.telefono)}</a>` : ''}`);
+                .bindPopup(`<b>🛡️ ${escapeHTML(c.nombre)}</b><br><small>${escapeHTML(c.direccion)}</small>${c.telefono ? `<br><a href="tel:${escapeHTML(c.telefono)}">📞 ${escapeHTML(c.telefono)}</a>` : ''}`)
+                .bindTooltip(escapeHTML(c.nombre), {
+                    permanent: true,
+                    direction: 'top',
+                    offset: [0, -26],
+                    className: 'safe-marker-label'
+                });
             safeMarkers.push(marker);
         });
 
